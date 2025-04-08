@@ -1,6 +1,6 @@
 # fetch data using pybit (https://github.com/bybit-exchange/pybit)
 #
-# Example usage: python fetch_data.py api_key.json CAKEUSDT
+# Example usage: python3 fetch_data.py api_key.json CAKEUSDT
 # 
 
 
@@ -57,8 +57,7 @@ def fetch_historical_orderbook_day_data(day: datetime, symbol: str, category: st
     The .zip file is downloaded to ./data/ob/{category}/{symbol}/{year}-{month}-{day}_{symbol}_ob500.zip
     and then inflated to ./data/ob/{category}/{symbol}/{year}-{month}-{day}_{symbol}_ob500.data
     """
-    url = f"https://quote-saver.bycsi.com/orderbook/{category}/{symbol}/{day.year}-{
-        zero_pad_time(day.month)}-{zero_pad_time(day.day)}_{symbol}_ob500.data.zip"
+    url = f"https://quote-saver.bycsi.com/orderbook/{category}/{symbol}/{day.year}-{zero_pad_time(day.month)}-{zero_pad_time(day.day)}_{symbol}_ob500.data.zip"
     local_filename = url.split("/")[-1]
     print(f"Downloading {local_filename}")
 
@@ -118,8 +117,7 @@ def fetch_historical_trading_day_data(day: datetime, symbol: str, category: str 
     Fetch historical trading history data, given a date.
     The .zip file is downloaded to ./data/td/{symbol}/{symbol}{year}-{month}-{day}.csv.gz
     """
-    url = f"https://public.bybit.com/trading/{symbol}/{symbol}{day.year}-{
-        zero_pad_time(day.month)}-{zero_pad_time(day.day)}.csv.gz"
+    url = f"https://public.bybit.com/trading/{symbol}/{symbol}{day.year}-{zero_pad_time(day.month)}-{zero_pad_time(day.day)}.csv.gz"
     local_filename = url.split("/")[-1]
     print(f"Downloading {local_filename}")
 
@@ -180,5 +178,5 @@ if __name__ == "__main__":
 
     # download historical data from the last week
     day = datetime.today() - timedelta(days=7)
-    fetch_historical_trading_period_data(
-        day, day + timedelta(days=7), symbol, category="linear")
+    fetch_historical_trading_period_data(day, day + timedelta(days=7), symbol, category="linear")
+    fetch_historical_orderbook_period_data(day, day + timedelta(days=7), symbol, category="linear")
