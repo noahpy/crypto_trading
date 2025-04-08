@@ -49,6 +49,27 @@ def fetch_current_orderbook(session: BybitSession, symbol: str,
     except Exception as e:
         print("Error fetching orderbook!")
         print(e)
+        
+
+def fetch_recent_trading_history(session: BybitSession, symbol: str, category: str = "spot", limit: int=500):
+    """
+    Fetch recent trading history.
+    category can be: spot, inverse, linear, option
+    """
+
+    if (category == "spot"):
+        if (limit < 0 or limit > 60):
+            limit = 60
+    else:
+        if (limit < 0 or limit > 1000):
+            limit = 1000
+    try:
+        trades = session.get_public_trade_history(
+            category=category, symbol=symbol, limit=limit)
+        return trades
+    except Exception as e:
+        print("Error fetching recent trades!")
+        print(e)
 
 
 def fetch_historical_orderbook_day_data(day: datetime, symbol: str, category: str = "spot"):
@@ -172,11 +193,18 @@ def fetch_historical_trading_period_data(startday: datetime, endday: datetime, s
 if __name__ == "__main__":
     key_file_path = sys.argv[1]
     symbol = sys.argv[2]
-    # session = create_session(key_file_path)
+    session = create_session(key_file_path)
+    trades = fetch_recent_trading_history(session, symbol, category="linear")
+    print(trades)
+
     # orderbook = fetch_current_orderbook(session, symbol)
     # print(orderbook)
 
     # download historical data from the last week
+    # day = datetime.today() - timedelta(days=7)
+    # fetch_historical_trading_period_data(
+    #     day, day + timedelta(days=7), symbol, category="linear")
+
     day = datetime.today() - timedelta(days=7)
     fetch_historical_trading_period_data(day, day + timedelta(days=7), symbol, category="linear")
     fetch_historical_orderbook_period_data(day, day + timedelta(days=7), symbol, category="linear")

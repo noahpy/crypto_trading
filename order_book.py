@@ -16,7 +16,8 @@ def load_ob_data(
         contract,
         start_date,
         end_date,
-        exchange):
+        exchange,
+        category="linear"):
 
     if exchange == "bybit":
         snapshots = []
@@ -24,9 +25,9 @@ def load_ob_data(
         curr_date = start_date
         while curr_date <= end_date:
 
-            filepath_ob = f"{folder}ob/{curr_date.year}-{zero_pad(curr_date.month)}-{
+            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{zero_pad(curr_date.month)}-{
                 zero_pad(curr_date.day)}_{contract}_ob500.data"
-            filepath_trades = f"{folder}trades/{contract}{curr_date.year}-{
+            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{
                 zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
 
             df = pd.read_csv(filepath_trades, compression='gzip')
@@ -94,7 +95,6 @@ def load_ob_data(
 
 
 def build_bucket_snapshots(ob_data, td, num_buckets, bucket_size):
-
     if ob_data[0]["type"] != "snapshot":
         print("first element must be of type snapshot")
 
