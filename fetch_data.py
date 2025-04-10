@@ -1,8 +1,7 @@
 # fetch data using pybit (https://github.com/bybit-exchange/pybit)
 #
 # Example usage: python3 fetch_data.py api_key.json CAKEUSDT
-# 
-
+ 
 
 from pybit.unified_trading import HTTP as BybitSession
 import json
@@ -205,6 +204,6 @@ if __name__ == "__main__":
     # fetch_historical_trading_period_data(
     #     day, day + timedelta(days=7), symbol, category="linear")
 
-    day = datetime.today() - timedelta(days=7)
-    fetch_historical_trading_period_data(day, day + timedelta(days=7), symbol, category="linear")
-    fetch_historical_orderbook_period_data(day, day + timedelta(days=7), symbol, category="linear")
+    day = datetime.today()
+    fetch_historical_trading_period_data(day - timedelta(days=2), day, symbol, category="linear")
+    fetch_historical_orderbook_period_data(day - timedelta(days=2), day, symbol, category="linear")
