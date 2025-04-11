@@ -46,6 +46,49 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=100):
 
 
 
+def print_enhanced_confusion_matrix(tn, fp, fn, tp):
+    """
+    Print a simple confusion matrix showing only the percentage of total samples in each category.
+    
+    Args:
+        tn: True negatives (correctly predicted down)
+        fp: False positives (incorrectly predicted up)
+        fn: False negatives (incorrectly predicted down)
+        tp: True positives (correctly predicted up)
+    """
+    # Calculate total
+    total = tn + fp + fn + tp
+    
+    # Calculate percentages of total samples
+    tn_pct = tn / total * 100 if total > 0 else 0
+    fp_pct = fp / total * 100 if total > 0 else 0
+    fn_pct = fn / total * 100 if total > 0 else 0
+    tp_pct = tp / total * 100 if total > 0 else 0
+    
+    # Calculate row and column totals
+    row_down_pct = (tn_pct + fp_pct)
+    row_up_pct = (fn_pct + tp_pct)
+    col_down_pct = (tn_pct + fn_pct)
+    col_up_pct = (fp_pct + tp_pct)
+    
+    # Print the simple percentage matrix
+    print("\nConfusion Matrix (% of Total Samples):")
+    print("┌────────────┬─────────────────┬─────────────────┬─────────────┐")
+    print("│            │ Predicted Down  │  Predicted Up   │    Total    │")
+    print("├────────────┼─────────────────┼─────────────────┼───────── ───┤")
+    print(f"│ Actual Down│     {tn_pct:5.1f}%      │     {fp_pct:5.1f}%      │   {row_down_pct:5.1f}%    │")
+    print("├────────────┼─────────────────┼─────────────────┼─────────────┤")
+    print(f"│ Actual Up  │     {fn_pct:5.1f}%      │     {tp_pct:5.1f}%      │   {row_up_pct:5.1f}%    │")
+    print("├────────────┼─────────────────┼─────────────────┼─────────────┤")
+    print(f"│ Total      │     {col_down_pct:5.1f}%      │     {col_up_pct:5.1f}%      │   100.0%    │")
+    print("└────────────┴─────────────────┴─────────────────┴─────────────┘")
+    
+    # Print accuracy
+    accuracy = (tp + tn) / total if total > 0 else 0
+    print(f"\nOverall accuracy: {accuracy:.1%}")
+
+
+
 def evaluate_trend_prediction(model, features, aux_features, targets):
     """
     Evaluate model's trend prediction accuracy for time series data with auxiliary features.
@@ -96,6 +139,12 @@ def evaluate_trend_prediction(model, features, aux_features, targets):
     # Ensure proper shape
     y_true = targets
     y_pred = predictions
+
+    # Filter out neutral trends
+    non_zero = y_true != 0
+    y_true = y_true[non_zero]
+    y_pred = y_pred[non_zero]
+
     
     # Convert to binary trends (1 for positive, 0 for negative)
     y_true_trend = (y_true > 0).int()
@@ -129,18 +178,13 @@ def evaluate_trend_prediction(model, features, aux_features, targets):
     
     # Print results in a well-formatted way
     
-    print("\nConfusion Matrix:")
-    print(f"┌─────────────┬──────────────┬──────────────┐")
-    print(f"│             │ Predicted No │ Predicted Yes│")
-    print(f"├─────────────┼──────────────┼──────────────┤")
-    print(f"│ Actual No   │ {tn:12d} │ {fp:12d} │")
-    print(f"│ Actual Yes  │ {fn:12d} │ {tp:12d} │")
-    print(f"└─────────────┴──────────────┴──────────────┘")
+    print_enhanced_confusion_matrix(tn, fp, fn, tp)
     
     print("\nTrend Prediction:")
     print(f"Correct trends: {correct}/{total} ({correct/total:.2%})")
     print(f"Up trend accuracy:   {up_acc:.2%}")
     print(f"Down trend accuracy: {down_acc:.2%}")
+
     
 
     # Sort by prediction confidence (absolute value)
@@ -182,14 +226,6 @@ def evaluate_trend_prediction(model, features, aux_features, targets):
     plt.savefig('accuracy_by_confidence.png')
     plt.show()
 
-    return {
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "confusion_matrix": cm,
-        "correct_predictions": correct,
-        "total_predictions": total
-    }
+    return y_pred
 
 

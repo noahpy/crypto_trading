@@ -274,29 +274,13 @@ def build_bucket_snapshots(ob_data, td, num_buckets, bucket_size):
 
 
 
-def build_bucket_data_set(bucket_snapshots, horizon, step_size, window_len):
+def build_bucket_data_set(bucket_snapshots, horizon, window_len, steps_between):
 
     ob_buckets = []
     aux_features = []
     mid_price_changes = []
 
-    for i in range(step_size, len(bucket_snapshots) - horizon, step_size):
-
-        num_bid_takers = 0
-        num_ask_takers = 0
-        size_bid_takers = 0
-        size_ask_takers = 0
-        vwap = 0
-        for j in range(step_size):
-            num_bid_takers = bucket_snapshots[i-j]["num_bid_takers"]
-            num_ask_takers = bucket_snapshots[i-j]["num_ask_takers"]
-            size_bid_takers += bucket_snapshots[i-j]["size_bid_takers"]
-            size_ask_takers += bucket_snapshots[i-j]["size_ask_takers"]
-            vwap = bucket_snapshots[i-j]["vwap"] * (bucket_snapshots[i-j]["num_ask_takers"] + bucket_snapshots[i-j]["num_bid_takers"])
-
-        if vwap != 0:
-            vwap /= (size_bid_takers + size_ask_takers)
-
+    for i in range(len(bucket_snapshots) - horizon):
 
         mid_price_change = (bucket_snapshots[i+horizon]["midprice"] - bucket_snapshots[i]["midprice"]) #/bucket_snapshots[i]["midprice"]
 
@@ -307,7 +291,13 @@ def build_bucket_data_set(bucket_snapshots, horizon, step_size, window_len):
         ob = np.concatenate([bid_buckets, ask_buckets])
 
         ob_buckets.append(ob)
-        aux_features.append(np.array([num_bid_takers, num_ask_takers, size_bid_takers, size_ask_takers, vwap]))
+        aux_features.append(np.array([
+            bucket_snapshots[i]["num_bid_takers"],
+            bucket_snapshots[i]["num_ask_takers"],
+            bucket_snapshots[i]["size_bid_takers"],
+            bucket_snapshots[i]["size_ask_takers"],
+            bucket_snapshots[i]["vwap"] - bucket_snapshots[i-1]["vwap"]
+            ]))
         mid_price_changes.append(mid_price_change)
 
     ob_buckets = np.array(ob_buckets)
@@ -318,7 +308,7 @@ def build_bucket_data_set(bucket_snapshots, horizon, step_size, window_len):
     Y_data = []
 
     # Create sequences up to the last possible complete sequence
-    for i in range(len(ob_buckets) - window_len + 1):
+    for i in range(0, len(ob_buckets) - window_len + 1, steps_between):
         sequence = ob_buckets[i:i + window_len]
         X_data.append(sequence)
         X_aux.append(aux_features[i:i + window_len])
@@ -329,14 +319,8 @@ def build_bucket_data_set(bucket_snapshots, horizon, step_size, window_len):
 
 
 
-
-
-
-def build_bucket_change_data_set(bucket_snapshots, horizon, step_size, window_len):
+def build_bucket_change_data_set(bucket_snapshots, horizon, window_len, steps_between):
     
-    """
-    
-    """
 
     bid_buckets = bucket_snapshots[0]["bids"]
     ask_buckets = bucket_snapshots[0]["asks"]
@@ -345,43 +329,34 @@ def build_bucket_change_data_set(bucket_snapshots, horizon, step_size, window_le
     mid_price_changes = []
     aux_features = []
 
-    for i in range(step_size, len(bucket_snapshots) - horizon, step_size):
-
-        num_bid_takers = 0
-        num_ask_takers = 0
-        size_bid_takers = 0
-        size_ask_takers = 0
-        vwap = 0
-        for j in range(step_size):
-            num_bid_takers += bucket_snapshots[i-j]["num_bid_takers"]
-            num_ask_takers += bucket_snapshots[i-j]["num_ask_takers"]
-            size_bid_takers += bucket_snapshots[i-j]["size_bid_takers"]
-            size_ask_takers += bucket_snapshots[i-j]["size_ask_takers"]
-            vwap += bucket_snapshots[i-j]["vwap"] * (bucket_snapshots[i-j]["size_bid_takers"] + bucket_snapshots[i-j]["size_ask_takers"])
-
-        if vwap != 0:
-            vwap /= (size_bid_takers + size_ask_takers)
+    for i in range(1, len(bucket_snapshots) - horizon):
 
         mid_price_change = (bucket_snapshots[i+horizon]["midprice"] - bucket_snapshots[i]["midprice"]) #/bucket_snapshots[i]["midprice"]
 
         curr_bid_buckets = bucket_snapshots[i]["bids"]
         curr_ask_buckets = bucket_snapshots[i]["asks"]
 
-        bid_change = (curr_bid_buckets - np.array(bid_buckets)) / bid_buckets
-        ask_change = (curr_ask_buckets - np.array(ask_buckets)) / ask_buckets
+        bid_change = (curr_bid_buckets - np.array(bid_buckets)) #/ bid_buckets
+        ask_change = (curr_ask_buckets - np.array(ask_buckets)) #/ ask_buckets
 
         # Concatenate both arrays
         ob_changes = np.concatenate([bid_change, ask_change])
 
         ob_bucket_changes.append(ob_changes)
         mid_price_changes.append(mid_price_change)
-        aux_features.append(np.array([num_bid_takers, num_ask_takers, size_bid_takers, size_ask_takers, vwap]))
+        
+        aux_features.append(np.array([
+            bucket_snapshots[i]["num_bid_takers"],
+            bucket_snapshots[i]["num_ask_takers"],
+            bucket_snapshots[i]["size_bid_takers"],
+            bucket_snapshots[i]["size_ask_takers"],
+            bucket_snapshots[i]["vwap"] - bucket_snapshots[i-1]["vwap"]
+            ]))
 
         bid_buckets = curr_bid_buckets
         ask_buckets = curr_ask_buckets
 
     ob_bucket_changes = np.array(ob_bucket_changes)
-    
     mid_price_changes = np.array(mid_price_changes)
 
     X_data = []
@@ -389,7 +364,7 @@ def build_bucket_change_data_set(bucket_snapshots, horizon, step_size, window_le
     Y_data = []
 
     # Create sequences up to the last possible complete sequence
-    for i in range(len(ob_bucket_changes) - window_len + 1):
+    for i in range(0, len(ob_bucket_changes) - window_len + 1, steps_between):
         sequence = ob_bucket_changes[i:i + window_len]
         X_data.append(sequence)
         X_aux.append(aux_features[i:i + window_len])
