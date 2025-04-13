@@ -40,13 +40,11 @@ class HistoricalDataRetriever:
         The .zip file is downloaded to ./data/ob/{category}/{symbol}/{year}-{month}-{day}_{symbol}_ob500.zip
         and then inflated to ./data/ob/{category}/{symbol}/{year}-{month}-{day}_{symbol}_ob500.data
         """
-        url = f"https://quote-saver.bycsi.com/orderbook/{category}/{symbol}/{day.year}-{
-            self.zero_pad_time(day.month)}-{self.zero_pad_time(day.day)}_{symbol}_ob500.data.zip"
+        url = f"https://quote-saver.bycsi.com/orderbook/{category}/{symbol}/{day.year}-{self.zero_pad_time(day.month)}-{self.zero_pad_time(day.day)}_{symbol}_ob500.data.zip"
         local_filename = url.split("/")[-1]
         print(f"Downloading {local_filename}")
 
-        total_download_path = f"{
-            self.download_path}/data/ob/{category}/{symbol}/"
+        total_download_path = f"{self.download_path}/data/ob/{category}/{symbol}/"
 
         # skip if file already exists
         if os.path.exists(f"{total_download_path}{local_filename}"):
@@ -102,8 +100,7 @@ class HistoricalDataRetriever:
         Fetch historical trading history data, given a date.
         The .zip file is downloaded to ./data/td/{symbol}/{symbol}{year}-{month}-{day}.csv.gz
         """
-        url = f"https://public.bybit.com/trading/{symbol}/{symbol}{day.year}-{
-            self.zero_pad_time(day.month)}-{self.zero_pad_time(day.day)}.csv.gz"
+        url = f"https://public.bybit.com/trading/{symbol}/{symbol}{day.year}-{self.zero_pad_time(day.month)}-{self.zero_pad_time(day.day)}.csv.gz"
         local_filename = url.split("/")[-1]
         print(f"Downloading {local_filename}")
 

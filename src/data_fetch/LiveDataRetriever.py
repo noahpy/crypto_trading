@@ -77,7 +77,7 @@ class LiveDataRetriever:
 
                 orderbook = self.session.get_orderbook(
                     category=category, symbol=symbol, limit=limit)
-                return orderbook
+                return orderbook["result"]
             except Exception as e:
                 print("Error fetching orderbook!")
                 print(e)
