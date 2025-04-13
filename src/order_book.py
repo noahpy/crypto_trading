@@ -12,21 +12,22 @@ def zero_pad(x):
 
 
 
-def load_as_bucket_snapshots(
+def load_ob_data(
         folder,
         contract,
         start_date,
         end_date,
         td,
+        data_format,
         num_buckets,
         bucket_size,
         category="linear"):
     
 
-    
-        
         bucket_snapshots = []
         curr_date = start_date
+
+
         while curr_date <= end_date:
             
             snapshots = []
@@ -36,21 +37,19 @@ def load_as_bucket_snapshots(
             print(f"{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}")
 
             df = pd.read_csv(filepath_trades, compression='gzip')
+            
+            next_ts = ob_data[0]["timestamp"] + td
             trade_id = 0
 
             with open(filepath_ob, 'rb') as f:
                 for line_number, line in enumerate(f, 1):
 
                     data = json.loads(line.decode('utf-8'))
+
                     ts = datetime.fromtimestamp(data['ts']/1000)
 
-                    # Convert bids list to dictionary with validation
-                    bids = {float(price): float(size)
-                            for price, size in data['data']['b']}
-
-                    # Convert asks list to dictionary with validation
-                    asks = {float(price): float(size)
-                            for price, size in data['data']['a']}
+                    bids = {float(price): float(size) for price, size in data['data']['b']}
+                    asks = {float(price): float(size) for price, size in data['data']['a']}
 
                     num_bid_takers = 0
                     num_ask_takers = 0
@@ -173,6 +172,60 @@ def load_ob_data(folder, contract, start_date, end_date, exchange, category="lin
     else:
         print(f"{exchange} not implemented")
         return None
+
+
+def convert_bybit_ob_to_snapshot(order_book):
+    """
+    This function takes a bybit order book and converts it into a format that is better to work with
+    """
+
+    ts = datetime.fromtimestamp(order_book['ts']/1000)
+
+    # Convert bids list to dictionary with validation
+    bids = {float(price): float(size) for price, size in order_book['b']}
+
+    # Convert asks list to dictionary with validation
+    asks = {float(price): float(size) for price, size in order_book['a']}
+
+    mid_price = (min(asks.keys()) + max(bids.keys()))/2
+
+    return {"ts": ts, "mid_price": mid_price, "bids": bids, "asks": asks}
+
+
+
+def get_bucket_representation(ob_snapshot, num_buckets, bucket_size):
+
+    curr_bids = ob_snapshot["bids"]
+    curr_asks = ob_snapshot["asks"]
+
+    max_bid = max(curr_bids.keys())
+    min_ask = min(curr_asks.keys())
+    #print(f"min_ask: {min_ask}, max_bid: {max_bid}")
+    mid_price = (max_bid + min_ask)/2
+
+    bid_buckets = [0 for i in range(num_buckets)]
+    ask_buckets = [0 for i in range(num_buckets)]
+
+    for level in curr_bids:
+        bucket = min(int((mid_price - level)/mid_price / bucket_size), num_buckets - 1)
+        bid_buckets[bucket] += curr_bids[level]
+
+    for level in curr_asks:
+        bucket = min(int((level - mid_price)/mid_price /bucket_size), num_buckets - 1)
+        #print(f"level: {level}, midprice: {mid_price}")
+        #print(f"bucket: {bucket}")
+        bucket = num_buckets - 1 - bucket
+        #print(f"len: {len(ask_buckets)}, index: {bucket}")
+        ask_buckets[bucket] += curr_asks[level]
+
+    return {
+        "midprice": mid_price,
+        "bids": bid_buckets,
+        "asks": ask_buckets
+        }
+
+def get_level_representation(ob_snapshot, num_levels):
+    return None
 
 
 
