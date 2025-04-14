@@ -2,6 +2,9 @@ from datetime import timedelta, datetime
 import numpy as np
 import json
 import pandas as pd
+from data_format.order_book_format import *
+from data_format.trade_format import *
+
 
 
 def zero_pad(x):
@@ -10,54 +13,129 @@ def zero_pad(x):
     else:
         return x
 
+def signed_log_transform(x):
+    """Apply sign-preserving log transformation to data."""
+    # Get the sign of the data
+    signs = np.sign(x)
+    log_abs = np.log1p(np.abs(x))
+    return signs * log_abs
 
-def load_ob_data(
+def signed_root_transform(x):
+    """Apply sign-preserving log transformation to data."""
+    # Get the sign of the data
+    signs = np.sign(x)
+    root_abs = np.sqrt(np.abs(x))
+    return signs * root_abs
+
+def normalise(x_train, x_val):
+    # Compute mean and std along the samples axis (axis 0)
+    train_mean = np.mean(x_train, axis=0)
+    train_std = np.std(x_train, axis=0)
+
+    # Normalize while preserving 3D structure
+    x_train = (x_train - train_mean) / train_std
+    x_val = (x_val - train_mean) / train_std
+
+    return x_train, x_val
+
+def normalise_std(x_train, x_val):
+    # Compute mean and std along the samples axis (axis 0)
+    
+    train_std = np.std(x_train, axis=0)
+
+    # Normalize while preserving 3D structure
+    x_train = x_train / train_std
+    x_val = x_val / train_std
+
+    return x_train, x_val
+
+def update_order_book(current_bids, current_asks, new_bids, new_asks, ob_type):
+
+    # update order book
+    if ob_type == "snapshot":
+        current_bids = new_bids
+        current_asks = new_asks
+
+    else:
+        # update bids 
+        for price in new_bids:
+            if new_bids[price] == 0:
+                if price in current_bids:
+                    del current_bids[price]
+            else:
+                current_bids[price] = new_bids[price]
+
+        # update asks
+        for price in new_asks:
+            if new_asks[price] == 0:
+                if price in current_asks:
+                    del current_asks[price]
+            else:
+                current_asks[price] = new_asks[price]
+        
+    return current_bids, current_asks
+
+
+def load_ob_and_trade_data(
         folder,
         contract,
         start_date,
         end_date,
         td,
-        data_format,
-        num_buckets,
-        bucket_size,
+        ob_format_func,
+        trade_format_func,
         category="linear"):
+        ob_data = []
+        trade_data = []
+        mp_data = []
 
-    bucket_snapshots = []
-    curr_date = start_date
-
-    while curr_date <= end_date:
-
-        snapshots = []
-        filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{
-            zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
-        filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{
-            zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
-
-        print(f"{curr_date.year}-{zero_pad(curr_date.month)
-                                  }-{zero_pad(curr_date.day)}")
-
-        df = pd.read_csv(filepath_trades, compression='gzip')
-
-        next_ts = ob_data[0]["timestamp"] + td
+        curr_date = start_date
+        next_ts = start_date + td
         trade_id = 0
 
-        with open(filepath_ob, 'rb') as f:
-            for line_number, line in enumerate(f, 1):
+        while curr_date <= end_date:
+            
 
-                data = json.loads(line.decode('utf-8'))
+            print(f"{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}")
+            
+            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
+            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
 
-                ts = datetime.fromtimestamp(data['ts']/1000)
+            hist_trade_data = pd.read_csv(filepath_trades, compression='gzip')
+            current_bids = None
+            current_asks = None
 
-                bids = {float(price): float(size)
-                        for price, size in data['data']['b']}
-                asks = {float(price): float(size)
-                        for price, size in data['data']['a']}
 
-                num_bid_takers = 0
-                num_ask_takers = 0
-                size_bid_takers = 0
-                size_ask_takers = 0
-                vwap = 0
+            with open(filepath_ob, 'rb') as f:
+                for line_number, line in enumerate(f, 1):
+                    
+                    # read data from line
+                    data = json.loads(line.decode('utf-8'))
+                    ts = datetime.fromtimestamp(data['ts']/1000)
+                    new_bids = {float(price): float(size) for price, size in data['data']['b']}
+                    new_asks = {float(price): float(size) for price, size in data['data']['a']}
+                    
+                    # update order book
+                    current_bids, current_asks = update_order_book(
+                                                            current_bids, current_asks, 
+                                                            new_bids, new_asks, 
+                                                            data['type'])
+                    
+                    mid_price = (max(current_bids.keys()) + min(current_asks.keys()))/2
+
+                    # skip until next_ts is reached
+                    if ts < next_ts:
+                        continue
+                    next_ts += td
+
+                    
+                    # calculate trade statistics between the last two order books
+                    num_bid_takers = num_ask_takers = 0
+                    size_bid_takers = size_ask_takers = 0
+                    vwap = 0
+                    while trade_id < len(hist_trade_data) and hist_trade_data.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
+                        trade = hist_trade_data.iloc[trade_id]
+                        trade_id += 1
 
                 while trade_id < len(df) and df.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
                     trade = df.iloc[trade_id]
@@ -72,33 +150,51 @@ def load_ob_data(
 
                     vwap += trade["price"] * trade["size"]
 
-                if vwap != 0:
-                    vwap /= (size_bid_takers + size_ask_takers)
+                    # store formatted data
+                    snapshot = {
+                        'timestamp': ts,
+                        'mid_price': mid_price,
+                        'bids': current_bids.copy(),
+                        'asks': current_asks.copy(),
+                        'num_bid_takers': num_bid_takers,
+                        'num_ask_takers': num_ask_takers,
+                        'size_bid_takers': size_bid_takers,
+                        'size_ask_takers': size_ask_takers,
+                        'vwap': vwap
+                    }
 
-                snapshot = {
-                    'timestamp': ts,
-                    'bids': bids,
-                    'asks': asks,
-                    'type': data['type'],
-                    'seq': data['data'].get('seq'),
-                    'update_id': data['data'].get('u'),
-                    'num_bid_takers': num_bid_takers,
-                    'num_ask_takers': num_ask_takers,
-                    'size_bid_takers': size_bid_takers,
-                    'size_ask_takers': size_ask_takers,
-                    'vwap': vwap
-                }
+                    ob_data.append(ob_format_func(snapshot))
+                    trade_data.append(trade_format_func(snapshot))
+                    mp_data.append(mid_price)
+            curr_date += timedelta(days=1)
 
-                snapshots.append(snapshot)
+        return ob_data, trade_data, mp_data
+    
 
-        bucket_snapshots += build_bucket_snapshots(
-            snapshots, td, num_buckets, bucket_size)
-        curr_date += timedelta(days=1)
+def build_data_set(ob_data, trade_data, mp_data, horizon, window_len, steps_between):
 
-    return bucket_snapshots
+    X_ob = []
+    X_trade = []
+    Y_data = []
 
 
-def load_ob_data(folder, contract, start_date, end_date, exchange, category="linear"):
+    # Create sequences up to the last possible complete sequence
+    for i in range(0, len(ob_data) - window_len - horizon, steps_between):
+        
+        X_ob.append(ob_data[i:i + window_len])
+        X_trade.append(trade_data[i:i + window_len])
+        Y_data.append(mp_data[i + window_len + horizon] - mp_data[i + window_len])
+
+    return np.array(X_ob), np.array(X_trade), np.array(Y_data)
+
+
+
+
+
+#### OLD ####
+
+
+def load_ob_data_old(folder, contract, start_date, end_date, exchange, category="linear"):
 
     if exchange == "bybit":
         snapshots = []
@@ -330,7 +426,9 @@ def build_bucket_snapshots(ob_data, td, num_buckets, bucket_size):
     return snapshots
 
 
-def build_bucket_data_set(bucket_snapshots, horizon, window_len, steps_between):
+
+
+def build_bucket_data_set(ob_data, trade_data, horizon, window_len, steps_between):
 
     ob_buckets = []
     aux_features = []
@@ -341,6 +439,7 @@ def build_bucket_data_set(bucket_snapshots, horizon, window_len, steps_between):
         # /bucket_snapshots[i]["midprice"]
         mid_price_change = (
             bucket_snapshots[i+horizon]["midprice"] - bucket_snapshots[i]["midprice"])
+
 
         bid_buckets = bucket_snapshots[i]["bids"]
         ask_buckets = bucket_snapshots[i]["asks"]

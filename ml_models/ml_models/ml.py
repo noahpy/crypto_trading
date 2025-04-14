@@ -24,24 +24,40 @@ class OrderBookDataset(Dataset):
 
 
 def train_model(model, train_loader, criterion, optimizer, num_epochs=100):
-
     losses = []
     for epoch in range(num_epochs):
         running_loss = 0.0
+        total_grad_norm = 0.0
+        
         for features, aux_features, targets in train_loader:
             # Zero the parameter gradients
             optimizer.zero_grad()
+            
             # Forward pass
             outputs = model(features, aux_features)
+            
+            # Print shapes on first batch of first epoch
+            if epoch == 0 and running_loss == 0.0:
+                print(f"Output shape: {outputs.shape}, Target shape: {targets.shape}")
+            
             loss = criterion(outputs, targets)
+            
             # Backward pass and optimize
             loss.backward()
+            
+            # Calculate gradient norm
+            grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
+            total_grad_norm += grad_norm
+            
             optimizer.step()
             running_loss += loss.item()
+        
         epoch_loss = running_loss / len(train_loader)
+        avg_grad_norm = total_grad_norm / len(train_loader)
         losses.append(epoch_loss)
-        #if (epoch+1) % 5 == 0:
-        print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}')
+        
+        print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Grad Norm: {avg_grad_norm:.4f}')
+    
     return model, losses
 
 
