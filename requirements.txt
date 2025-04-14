@@ -4,3 +4,6 @@ seaborn
 scipy
 torch
 pybit
+-e ./data_processing
+-e ./data_retrieving
+-e ./ml_models

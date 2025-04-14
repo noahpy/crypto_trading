@@ -4,3 +4,4 @@
 __pycache__/
 apiKey.*
 data/
+*.egg-info/

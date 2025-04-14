@@ -4,9 +4,9 @@ import time
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
-from data_fetch.LiveDataRetriever import LiveDataRetriever
+from data_retrieving.LiveDataRetriever import LiveDataRetriever
 from matplotlib.colors import LinearSegmentedColormap
-from order_book import *
+from data_processing.order_book import *
 import seaborn as sns
 import sys
 
@@ -97,6 +97,13 @@ class InteractiveLiveRetriever(tk.Tk):
         # Create initial figure
         self.setup_plot()
 
+        # save reference to LiveDataRetriever later
+        self.ld = None
+
+    def __del__(self):
+        if self.ld:
+            del self.ld
+
     def setup_plot(self):
         # Create a new figure and canvas
         plt.close('all')  # Close any existing figures
@@ -154,12 +161,12 @@ class InteractiveLiveRetriever(tk.Tk):
         """Process data in a separate thread and schedule visualization on main thread"""
         try:
             global api_key_path
-            ld = LiveDataRetriever(api_key_path)
+            self.ld = LiveDataRetriever(api_key_path)
 
             while self.running:
                 try:
                     # Load order book
-                    current_ob = ld.fetch_current_orderbook(symbol)
+                    current_ob = self.ld.fetch_current_orderbook(symbol)
                     ob_snapshot = convert_bybit_ob_to_snapshot(current_ob)
 
                     # Add to history and limit size

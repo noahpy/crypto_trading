@@ -11,7 +11,6 @@ def zero_pad(x):
         return x
 
 
-
 def load_ob_data(
         folder,
         contract,
@@ -22,79 +21,81 @@ def load_ob_data(
         num_buckets,
         bucket_size,
         category="linear"):
-    
 
-        bucket_snapshots = []
-        curr_date = start_date
+    bucket_snapshots = []
+    curr_date = start_date
 
+    while curr_date <= end_date:
 
-        while curr_date <= end_date:
-            
-            snapshots = []
-            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
-            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
+        snapshots = []
+        filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{
+            zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
+        filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{
+            zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
 
-            print(f"{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}")
+        print(f"{curr_date.year}-{zero_pad(curr_date.month)
+                                  }-{zero_pad(curr_date.day)}")
 
-            df = pd.read_csv(filepath_trades, compression='gzip')
-            
-            next_ts = ob_data[0]["timestamp"] + td
-            trade_id = 0
+        df = pd.read_csv(filepath_trades, compression='gzip')
 
-            with open(filepath_ob, 'rb') as f:
-                for line_number, line in enumerate(f, 1):
+        next_ts = ob_data[0]["timestamp"] + td
+        trade_id = 0
 
-                    data = json.loads(line.decode('utf-8'))
+        with open(filepath_ob, 'rb') as f:
+            for line_number, line in enumerate(f, 1):
 
-                    ts = datetime.fromtimestamp(data['ts']/1000)
+                data = json.loads(line.decode('utf-8'))
 
-                    bids = {float(price): float(size) for price, size in data['data']['b']}
-                    asks = {float(price): float(size) for price, size in data['data']['a']}
+                ts = datetime.fromtimestamp(data['ts']/1000)
 
-                    num_bid_takers = 0
-                    num_ask_takers = 0
-                    size_bid_takers = 0
-                    size_ask_takers = 0
-                    vwap = 0
+                bids = {float(price): float(size)
+                        for price, size in data['data']['b']}
+                asks = {float(price): float(size)
+                        for price, size in data['data']['a']}
 
-                    while trade_id < len(df) and df.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
-                        trade = df.iloc[trade_id]
-                        trade_id += 1
+                num_bid_takers = 0
+                num_ask_takers = 0
+                size_bid_takers = 0
+                size_ask_takers = 0
+                vwap = 0
 
-                        if trade["side"] == "Buy":
-                            num_bid_takers += 1
-                            size_bid_takers += trade["size"]
-                        else:
-                            num_ask_takers += 1
-                            size_ask_takers += trade["size"]
+                while trade_id < len(df) and df.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
+                    trade = df.iloc[trade_id]
+                    trade_id += 1
 
-                        vwap += trade["price"] * trade["size"]
+                    if trade["side"] == "Buy":
+                        num_bid_takers += 1
+                        size_bid_takers += trade["size"]
+                    else:
+                        num_ask_takers += 1
+                        size_ask_takers += trade["size"]
 
-                    if vwap != 0:
-                        vwap /= (size_bid_takers + size_ask_takers)
+                    vwap += trade["price"] * trade["size"]
 
-                    snapshot = {
-                        'timestamp': ts,
-                        'bids': bids,
-                        'asks': asks,
-                        'type': data['type'],
-                        'seq': data['data'].get('seq'),
-                        'update_id': data['data'].get('u'),
-                        'num_bid_takers': num_bid_takers,
-                        'num_ask_takers': num_ask_takers,
-                        'size_bid_takers': size_bid_takers,
-                        'size_ask_takers': size_ask_takers,
-                        'vwap': vwap
-                    }
+                if vwap != 0:
+                    vwap /= (size_bid_takers + size_ask_takers)
 
-                    snapshots.append(snapshot)
+                snapshot = {
+                    'timestamp': ts,
+                    'bids': bids,
+                    'asks': asks,
+                    'type': data['type'],
+                    'seq': data['data'].get('seq'),
+                    'update_id': data['data'].get('u'),
+                    'num_bid_takers': num_bid_takers,
+                    'num_ask_takers': num_ask_takers,
+                    'size_bid_takers': size_bid_takers,
+                    'size_ask_takers': size_ask_takers,
+                    'vwap': vwap
+                }
 
-            bucket_snapshots += build_bucket_snapshots(snapshots, td, num_buckets, bucket_size)
-            curr_date += timedelta(days=1)
+                snapshots.append(snapshot)
 
-        return bucket_snapshots
-    
+        bucket_snapshots += build_bucket_snapshots(
+            snapshots, td, num_buckets, bucket_size)
+        curr_date += timedelta(days=1)
 
+    return bucket_snapshots
 
 
 def load_ob_data(folder, contract, start_date, end_date, exchange, category="linear"):
@@ -104,11 +105,14 @@ def load_ob_data(folder, contract, start_date, end_date, exchange, category="lin
 
         curr_date = start_date
         while curr_date <= end_date:
-            
-            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
-            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
 
-            print(f"{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}")
+            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{
+                zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
+            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{
+                zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
+
+            print(f"{curr_date.year}-{zero_pad(curr_date.month)
+                                      }-{zero_pad(curr_date.day)}")
 
             df = pd.read_csv(filepath_trades, compression='gzip')
             trade_id = 0
@@ -192,7 +196,6 @@ def convert_bybit_ob_to_snapshot(order_book):
     return {"ts": ts, "mid_price": mid_price, "bids": bids, "asks": asks}
 
 
-
 def get_bucket_representation(ob_snapshot, num_buckets, bucket_size):
 
     curr_bids = ob_snapshot["bids"]
@@ -200,37 +203,39 @@ def get_bucket_representation(ob_snapshot, num_buckets, bucket_size):
 
     max_bid = max(curr_bids.keys())
     min_ask = min(curr_asks.keys())
-    #print(f"min_ask: {min_ask}, max_bid: {max_bid}")
+    # print(f"min_ask: {min_ask}, max_bid: {max_bid}")
     mid_price = (max_bid + min_ask)/2
 
     bid_buckets = [0 for i in range(num_buckets)]
     ask_buckets = [0 for i in range(num_buckets)]
 
     for level in curr_bids:
-        bucket = min(int((mid_price - level)/mid_price / bucket_size), num_buckets - 1)
+        bucket = min(int((mid_price - level)/mid_price /
+                     bucket_size), num_buckets - 1)
         bid_buckets[bucket] += curr_bids[level]
 
     for level in curr_asks:
-        bucket = min(int((level - mid_price)/mid_price /bucket_size), num_buckets - 1)
-        #print(f"level: {level}, midprice: {mid_price}")
-        #print(f"bucket: {bucket}")
+        bucket = min(int((level - mid_price)/mid_price /
+                     bucket_size), num_buckets - 1)
+        # print(f"level: {level}, midprice: {mid_price}")
+        # print(f"bucket: {bucket}")
         bucket = num_buckets - 1 - bucket
-        #print(f"len: {len(ask_buckets)}, index: {bucket}")
+        # print(f"len: {len(ask_buckets)}, index: {bucket}")
         ask_buckets[bucket] += curr_asks[level]
 
     return {
         "midprice": mid_price,
         "bids": bid_buckets,
         "asks": ask_buckets
-        }
+    }
+
 
 def get_level_representation(ob_snapshot, num_levels):
     return None
 
 
-
 def build_bucket_snapshots(ob_data, td, num_buckets, bucket_size):
-    
+
     if ob_data[0]["type"] != "snapshot":
         print("first element must be of type snapshot")
 
@@ -278,31 +283,34 @@ def build_bucket_snapshots(ob_data, td, num_buckets, bucket_size):
         num_ask_takers += ob_data[i]["num_ask_takers"]
         size_bid_takers += ob_data[i]["size_bid_takers"]
         size_ask_takers += ob_data[i]["size_ask_takers"]
-        vwap += ob_data[i]["vwap"] * (ob_data[i]["size_bid_takers"] + ob_data[i]["size_ask_takers"])
+        vwap += ob_data[i]["vwap"] * \
+            (ob_data[i]["size_bid_takers"] + ob_data[i]["size_ask_takers"])
 
         # store snapshot
         if curr_ts >= next_ts:
 
             max_bid = max(curr_bids.keys())
             min_ask = min(curr_asks.keys())
-            #print(f"min_ask: {min_ask}, max_bid: {max_bid}")
+            # print(f"min_ask: {min_ask}, max_bid: {max_bid}")
             mid_price = (max_bid + min_ask)/2
 
             bid_buckets = [0 for i in range(num_buckets)]
             ask_buckets = [0 for i in range(num_buckets)]
 
             for level in curr_bids:
-                bucket = min(int((mid_price - level)/mid_price / bucket_size), num_buckets - 1)
+                bucket = min(int((mid_price - level)/mid_price /
+                             bucket_size), num_buckets - 1)
                 bid_buckets[bucket] += curr_bids[level]
 
             for level in curr_asks:
-                bucket = min(int((level - mid_price)/mid_price /bucket_size), num_buckets - 1)
-                #print(f"level: {level}, midprice: {mid_price}")
-                #print(f"bucket: {bucket}")
+                bucket = min(int((level - mid_price)/mid_price /
+                             bucket_size), num_buckets - 1)
+                # print(f"level: {level}, midprice: {mid_price}")
+                # print(f"bucket: {bucket}")
                 bucket = num_buckets - 1 - bucket
-                #print(f"len: {len(ask_buckets)}, index: {bucket}")
+                # print(f"len: {len(ask_buckets)}, index: {bucket}")
                 ask_buckets[bucket] += curr_asks[level]
-                
+
             snapshot = {
                 "timestamp": curr_ts,
                 "midprice": mid_price,
@@ -312,19 +320,14 @@ def build_bucket_snapshots(ob_data, td, num_buckets, bucket_size):
                 "num_ask_takers": num_ask_takers,
                 "size_bid_takers": size_bid_takers,
                 "size_ask_takers": size_ask_takers,
-                "vwap": 0 if vwap == 0 else vwap /(size_ask_takers + size_bid_takers)
+                "vwap": 0 if vwap == 0 else vwap / (size_ask_takers + size_bid_takers)
             }
             snapshots.append(snapshot)
             num_bid_takers = num_ask_takers = size_bid_takers = size_ask_takers = vwap = 0
-            
+
             next_ts = curr_ts + td
 
-
-
-
     return snapshots
-
-
 
 
 def build_bucket_data_set(bucket_snapshots, horizon, window_len, steps_between):
@@ -335,7 +338,9 @@ def build_bucket_data_set(bucket_snapshots, horizon, window_len, steps_between):
 
     for i in range(len(bucket_snapshots) - horizon):
 
-        mid_price_change = (bucket_snapshots[i+horizon]["midprice"] - bucket_snapshots[i]["midprice"]) #/bucket_snapshots[i]["midprice"]
+        # /bucket_snapshots[i]["midprice"]
+        mid_price_change = (
+            bucket_snapshots[i+horizon]["midprice"] - bucket_snapshots[i]["midprice"])
 
         bid_buckets = bucket_snapshots[i]["bids"]
         ask_buckets = bucket_snapshots[i]["asks"]
@@ -350,12 +355,12 @@ def build_bucket_data_set(bucket_snapshots, horizon, window_len, steps_between):
             bucket_snapshots[i]["size_bid_takers"],
             bucket_snapshots[i]["size_ask_takers"],
             bucket_snapshots[i]["vwap"] - bucket_snapshots[i-1]["vwap"]
-            ]))
+        ]))
         mid_price_changes.append(mid_price_change)
 
     ob_buckets = np.array(ob_buckets)
     mid_price_changes = np.array(mid_price_changes)
-    
+
     X_data = []
     X_aux = []
     Y_data = []
@@ -370,10 +375,7 @@ def build_bucket_data_set(bucket_snapshots, horizon, window_len, steps_between):
     return np.array(X_data), np.array(X_aux), np.array(Y_data)
 
 
-
-
 def build_bucket_change_data_set(bucket_snapshots, horizon, window_len, steps_between):
-    
 
     bid_buckets = bucket_snapshots[0]["bids"]
     ask_buckets = bucket_snapshots[0]["asks"]
@@ -384,27 +386,31 @@ def build_bucket_change_data_set(bucket_snapshots, horizon, window_len, steps_be
 
     for i in range(1, len(bucket_snapshots) - horizon):
 
-        mid_price_change = (bucket_snapshots[i+horizon]["midprice"] - bucket_snapshots[i]["midprice"]) #/bucket_snapshots[i]["midprice"]
+        # /bucket_snapshots[i]["midprice"]
+        mid_price_change = (
+            bucket_snapshots[i+horizon]["midprice"] - bucket_snapshots[i]["midprice"])
 
         curr_bid_buckets = bucket_snapshots[i]["bids"]
         curr_ask_buckets = bucket_snapshots[i]["asks"]
 
-        bid_change = (curr_bid_buckets - np.array(bid_buckets)) #/ bid_buckets
-        ask_change = (curr_ask_buckets - np.array(ask_buckets)) #/ ask_buckets
+        # / bid_buckets
+        bid_change = (curr_bid_buckets - np.array(bid_buckets))
+        # / ask_buckets
+        ask_change = (curr_ask_buckets - np.array(ask_buckets))
 
         # Concatenate both arrays
         ob_changes = np.concatenate([bid_change, ask_change])
 
         ob_bucket_changes.append(ob_changes)
         mid_price_changes.append(mid_price_change)
-        
+
         aux_features.append(np.array([
             bucket_snapshots[i]["num_bid_takers"],
             bucket_snapshots[i]["num_ask_takers"],
             bucket_snapshots[i]["size_bid_takers"],
             bucket_snapshots[i]["size_ask_takers"],
             bucket_snapshots[i]["vwap"] - bucket_snapshots[i-1]["vwap"]
-            ]))
+        ]))
 
         bid_buckets = curr_bid_buckets
         ask_buckets = curr_ask_buckets
@@ -424,6 +430,7 @@ def build_bucket_change_data_set(bucket_snapshots, horizon, window_len, steps_be
         Y_data.append(mid_price_changes[i + window_len - 1])
 
     return np.array(X_data), np.array(X_aux), np.array(Y_data)
+
 
 def build_level_data_set(snapshots, horizon, step_size):
 
