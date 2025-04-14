@@ -128,8 +128,7 @@ class InteractiveLiveRetriever(tk.Tk):
             # Reset history when starting new session
             self.ob_history = []
 
-            self.status_label.config(text=f"Starting retrieval for {
-                                     symbol} with time delta {time_delta}s ")
+            self.status_label.config(text=f"Starting retrieval for {symbol} with time delta {time_delta}s ")
 
             # Update button states
             self.start_button.config(state=tk.DISABLED)
