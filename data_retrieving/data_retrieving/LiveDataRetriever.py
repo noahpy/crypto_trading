@@ -6,6 +6,11 @@ from threading import Thread
 from multiprocessing import Process, Lock, Value
 import signal
 
+request_mutex = Lock()
+request_count = Value('i', 0)
+
+WAIT_TIME_LIMIT = 0.1
+
 class LiveDataRetriever:
     """Singleton class for fetching live data.
        There can only exist one instace of this class per process
@@ -24,8 +29,6 @@ class LiveDataRetriever:
 
         def __init__(self, key_file_path: str):
             self.session = self.create_session(key_file_path)
-            self.request_mutex = Lock()
-            self.request_count = Value('i', 0)
             self.RATELIMIT_PER_FIVE_SECONDS = 600
             self.loop_refresh = True
             self.refresh_thread = Thread(
@@ -42,10 +45,10 @@ class LiveDataRetriever:
                 time.sleep(0.02)
                 if (time.time() - last_time >= 4.9):
                     last_time = time.time()
-                    with self.request_mutex:
+                    with request_mutex:
                         print("Reset rate limit counter from: ",
-                              self.request_count.value)
-                        self.request_count.value = 0
+                              request_count.value)
+                        request_count.value = 0
 
         def create_session(self, key_file_path: str) -> BybitSession:
             """
@@ -67,13 +70,17 @@ class LiveDataRetriever:
                 limit = 200
             try:
                 loop = True
+                start_time = time.time()
                 while loop:
-                    with self.request_mutex:
-                        if (self.request_count.value < self.RATELIMIT_PER_FIVE_SECONDS):
-                            self.request_count.value += 1
+                    with request_mutex:
+                        if (request_count.value < self.RATELIMIT_PER_FIVE_SECONDS):
+                            request_count.value += 1
                             loop = False
                             break
-                    time.sleep(0.05)
+                    time.sleep(0.01)
+                wait_time = time.time() - start_time
+                if wait_time >= WAIT_TIME_LIMIT:
+                    raise Exception("Wait time too long: " + str(wait_time))
 
                 orderbook = self.session.get_orderbook(
                     category=category, symbol=symbol, limit=limit)
@@ -96,13 +103,17 @@ class LiveDataRetriever:
                     limit = 1000
             try:
                 loop = True
+                start_time = time.time()
                 while loop:
-                    with self.request_mutex:
-                        if (self.request_count.value < self.RATELIMIT_PER_FIVE_SECONDS):
-                            self.request_count.value += 1
+                    with request_mutex:
+                        if (request_count.value < self.RATELIMIT_PER_FIVE_SECONDS):
+                            request_count.value += 1
                             loop = False
                             break
-                    time.sleep(0.05)
+                    time.sleep(0.01)
+                wait_time = time.time() - start_time
+                if wait_time >= WAIT_TIME_LIMIT:
+                    raise Exception("Wait time too long: " + str(wait_time))
                 trades = self.session.get_public_trade_history(
                     category=category, symbol=symbol, limit=limit)
                 return trades
@@ -138,7 +149,7 @@ class LiveDataRetriever:
 
 if __name__ == "__main__":
 
-    ld = LiveDataRetriever("../../apiKey.json")
+    ld = LiveDataRetriever("apiKey.json")
 
     def interpret_sigint(signum, frame):
         print("Received SIGINT at subprocess, cleaning up...")
@@ -146,11 +157,13 @@ if __name__ == "__main__":
 
     def loop():
         signal.signal(signal.SIGINT, interpret_sigint)
+        ld = LiveDataRetriever("apiKey.json")
         while (True):
             ld.fetch_current_orderbook("BTCUSDT")
 
     def loop2():
         signal.signal(signal.SIGINT, interpret_sigint)
+        ld = LiveDataRetriever("apiKey.json")
         while (True):
             ld.fetch_recent_trading_history("BTCUSDT")
 
