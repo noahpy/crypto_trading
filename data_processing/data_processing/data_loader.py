@@ -174,24 +174,27 @@ def load_ob_and_trade_data(
 
 
 
+from data_processing.FeatureCreation import FeatureCreator
 
 
 def load_ob_and_trade_data_new(
-        folder,
-        contract,
-        start_date,
-        end_date,
-        td,
-        ob_format_func,
-        trade_format_func,
-        category="linear"):
+        folder: str,
+        contract: str,
+        start_date: datetime,
+        end_date: datetime,
+        time_delta : timedelta,
+        input_feature_creator : FeatureCreator,
+        output_feature_creator : FeatureCreator,
+        category:str="linear"):
 
-        ob_data = []
-        trade_data = []
-        mp_data = []
+
+        feature_data = []
+        target_data = []
+
+
 
         curr_date = start_date
-        next_ts = start_date + td
+        next_ts = start_date + time_delta
         trade_id = 0
 
         while curr_date <= end_date:
@@ -222,51 +225,44 @@ def load_ob_and_trade_data_new(
                                                             new_bids, new_asks, 
                                                             data['type'])
                     
-                    mid_price = (max(current_bids.keys()) + min(current_asks.keys()))/2
 
                     # skip until next_ts is reached
                     if ts < next_ts:
                         continue
-                    next_ts += td
+                    next_ts += time_delta
 
                     
                     # calculate trade statistics between the last two order books
                     num_bid_takers = num_ask_takers = 0
                     size_bid_takers = size_ask_takers = 0
                     vwap = 0
+                    trades = []
                     while trade_id < len(hist_trade_data) and hist_trade_data.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
                         trade = hist_trade_data.iloc[trade_id]
+                        trades.append(trade)
                         trade_id += 1
 
-                        if trade["side"] == "Buy":
-                            num_bid_takers += 1
-                            size_bid_takers += trade["size"]
-                        else:
-                            num_ask_takers += 1
-                            size_ask_takers += trade["size"]
-
-                        vwap += trade["price"] * trade["size"]
 
                     # store formatted data
                     snapshot = {
                         'timestamp': ts,
-                        'mid_price': mid_price,
                         'bids': current_bids.copy(),
                         'asks': current_asks.copy(),
-                        'num_bid_takers': num_bid_takers,
-                        'num_ask_takers': num_ask_takers,
-                        'size_bid_takers': size_bid_takers,
-                        'size_ask_takers': size_ask_takers,
-                        'vwap': vwap
+                        'trades' : trades
                     }
 
-                    ob_data.append(ob_format_func(snapshot))
-                    trade_data.append(trade_format_func(snapshot))
-                    mp_data.append(mid_price)
+                    input_feature_creator.feed_datapoint(snapshot)
+                    output_feature_creator.feed_datapoint(snapshot)
+
+                    if input_feature_creator.is_ready():
+                        feature_data.append(input_feature_creator.create_features())
+
+                    if output_feature_creator.is_ready():
+                        target_data.append(output_feature_creator.create_features())
                     
             curr_date += timedelta(days=1)
 
-        return ob_data, trade_data, mp_data
+        return feature_data, target_data
 
 
 
