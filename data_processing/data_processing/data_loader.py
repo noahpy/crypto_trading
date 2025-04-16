@@ -253,12 +253,11 @@ def load_ob_and_trade_data_new(
                         'mid_price': mid_price,
                         'bids': current_bids.copy(),
                         'asks': current_asks.copy(),
-                        'num_bid_takers': num_bid_takers,
-                        'num_ask_takers': num_ask_takers,
-                        'size_bid_takers': size_bid_takers,
-                        'size_ask_takers': size_ask_takers,
-                        'vwap': vwap
+                        'trades': [],
+                        
                     }
+
+
 
                     ob_data.append(ob_format_func(snapshot))
                     trade_data.append(trade_format_func(snapshot))

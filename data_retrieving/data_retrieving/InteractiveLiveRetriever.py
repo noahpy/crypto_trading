@@ -217,8 +217,7 @@ class InteractiveLiveRetriever(tk.Tk):
 
                                 if abs(price - level) < tolerance:
                                     if i == 1:
-                                        levels[j] = f"{
-                                            zero_pad(price, tick_size)} - {round(bid_prices[price])}"
+                                        levels[j] = f"{zero_pad(price, tick_size)} - {round(bid_prices[price])}"
 
                                     bid_data[-i][j] += bid_prices[price]
                                     break
@@ -228,8 +227,7 @@ class InteractiveLiveRetriever(tk.Tk):
 
                                 if abs(price - level) < tolerance:
                                     if i == 1:
-                                        levels[j] = f"{
-                                            zero_pad(price, tick_size)} - {round(ask_prices[price])}"
+                                        levels[j] = f"{zero_pad(price, tick_size)} - {round(ask_prices[price])}"
                                     ask_data[-i][j] += ask_prices[price]
                                     break
 
@@ -239,8 +237,7 @@ class InteractiveLiveRetriever(tk.Tk):
 
                     # Update status
                     self.after(0, lambda: self.status_label.config(
-                        text=f"Updated at {time.strftime(
-                            '%H:%M:%S')} - {symbol} - {len(self.ob_history)} snapshots"
+                        text=f"Updated at {time.strftime('%H:%M:%S')} - {symbol} - {len(self.ob_history)} snapshots"
                     ))
 
                     # Sleep for time delta
