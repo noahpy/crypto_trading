@@ -5,7 +5,7 @@ import pandas as pd
 from typing import Dict, List, Union, Any
 
 
-def ob_bucket_format(snapshot: Dict[str, Any], num_buckets: int = 10, bucket_size: float = 0.01) -> List[float]:
+def ob_bucket_format(snapshot: Dict[str, Any], num_buckets: int = 10, bucket_size: float = 0.005) -> List[float]:
     """
     Transforms order book data into fixed-size buckets based on price distance from mid-price.
     
@@ -38,7 +38,7 @@ def ob_bucket_format(snapshot: Dict[str, Any], num_buckets: int = 10, bucket_siz
 
 
 
-def ob_top_level_format(snapshot: Dict[str, Dict[float, float]], num_levels: int = 5, shuffle: bool = False) -> np.ndarray:
+def ob_top_level_format(snapshot: Dict[str, Dict[float, float]], num_levels: int = 10, shuffle: bool = True) -> np.ndarray:
     """
     Records the best >num_levels< on each side.
     @Params:

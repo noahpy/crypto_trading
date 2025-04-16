@@ -4,13 +4,13 @@ from tensorflow import keras
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense, Reshape, Concatenate, Flatten, Layer, Attention
-from tensorflow.keras import regularizers
+from keras import regularizers
 import pickle
-from tensorflow.keras import layers, regularizers
+from keras import layers, regularizers
 
 
 
-def convolution_layer(input_train):
+def convolution_layer(input_train, num_order_buckets):
     
     """
     Apply a series of convolutional layers to the input data.
@@ -46,7 +46,7 @@ def convolution_layer(input_train):
     conv_first1 = keras.layers.LeakyReLU(alpha=0.01)(conv_first1)
     conv_first1 = keras.layers.Conv2D(32, (2, 1), padding='same')(conv_first1)
     conv_first1 = keras.layers.LeakyReLU(alpha=0.01)(conv_first1)
-    conv_first1 = keras.layers.Conv2D(32, (1, 8))(conv_first1)
+    conv_first1 = keras.layers.Conv2D(32, (1, int(num_order_buckets/2/2)))(conv_first1)
     conv_first1 = keras.layers.LeakyReLU(alpha=0.01)(conv_first1)
 
     
@@ -74,9 +74,9 @@ def convolution_layer(input_train):
 def get_model_lstm(
     latent_dim,
     dropout_rate = 0,
-    horizons_backward = 19,
-    num_order_buckets = 32,
-    num_order_book_features = 6,
+    horizons_backward = 50,
+    num_order_buckets = 40,
+    num_order_book_features = 5,
     num_outputs=1,
     last_activation_function="linear",
     l2_regularizer = 0):
@@ -110,7 +110,7 @@ def get_model_lstm(
     # process order book buckets as image
     input_order_book_buckets = keras.layers.Input(shape=(horizons_backward+1, num_order_buckets, 1), name="ob_bucket_input")
     
-    conv_output = convolution_layer(input_order_book_buckets)
+    conv_output = convolution_layer(input_order_book_buckets, num_order_buckets)
     # conv_output = convolution_layer_dropout(input_order_book_buckets)
     
     

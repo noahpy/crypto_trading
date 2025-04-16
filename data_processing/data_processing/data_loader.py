@@ -85,6 +85,7 @@ def load_ob_and_trade_data(
         ob_format_func,
         trade_format_func,
         category="linear"):
+
         ob_data = []
         trade_data = []
         mp_data = []
@@ -137,18 +138,14 @@ def load_ob_and_trade_data(
                         trade = hist_trade_data.iloc[trade_id]
                         trade_id += 1
 
-                while trade_id < len(df) and df.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
-                    trade = df.iloc[trade_id]
-                    trade_id += 1
+                        if trade["side"] == "Buy":
+                            num_bid_takers += 1
+                            size_bid_takers += trade["size"]
+                        else:
+                            num_ask_takers += 1
+                            size_ask_takers += trade["size"]
 
-                    if trade["side"] == "Buy":
-                        num_bid_takers += 1
-                        size_bid_takers += trade["size"]
-                    else:
-                        num_ask_takers += 1
-                        size_ask_takers += trade["size"]
-
-                    vwap += trade["price"] * trade["size"]
+                        vwap += trade["price"] * trade["size"]
 
                     # store formatted data
                     snapshot = {
@@ -166,10 +163,125 @@ def load_ob_and_trade_data(
                     ob_data.append(ob_format_func(snapshot))
                     trade_data.append(trade_format_func(snapshot))
                     mp_data.append(mid_price)
+                    
             curr_date += timedelta(days=1)
 
         return ob_data, trade_data, mp_data
     
+
+
+
+
+
+
+
+
+def load_ob_and_trade_data_new(
+        folder,
+        contract,
+        start_date,
+        end_date,
+        td,
+        ob_format_func,
+        trade_format_func,
+        category="linear"):
+
+        ob_data = []
+        trade_data = []
+        mp_data = []
+
+        curr_date = start_date
+        next_ts = start_date + td
+        trade_id = 0
+
+        while curr_date <= end_date:
+            
+
+            print(f"{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}")
+            
+            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
+            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
+
+            hist_trade_data = pd.read_csv(filepath_trades, compression='gzip')
+            current_bids = None
+            current_asks = None
+
+
+            with open(filepath_ob, 'rb') as f:
+                for line_number, line in enumerate(f, 1):
+                    
+                    # read data from line
+                    data = json.loads(line.decode('utf-8'))
+                    ts = datetime.fromtimestamp(data['ts']/1000)
+                    new_bids = {float(price): float(size) for price, size in data['data']['b']}
+                    new_asks = {float(price): float(size) for price, size in data['data']['a']}
+                    
+                    # update order book
+                    current_bids, current_asks = update_order_book(
+                                                            current_bids, current_asks, 
+                                                            new_bids, new_asks, 
+                                                            data['type'])
+                    
+                    mid_price = (max(current_bids.keys()) + min(current_asks.keys()))/2
+
+                    # skip until next_ts is reached
+                    if ts < next_ts:
+                        continue
+                    next_ts += td
+
+                    
+                    # calculate trade statistics between the last two order books
+                    num_bid_takers = num_ask_takers = 0
+                    size_bid_takers = size_ask_takers = 0
+                    vwap = 0
+                    while trade_id < len(hist_trade_data) and hist_trade_data.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
+                        trade = hist_trade_data.iloc[trade_id]
+                        trade_id += 1
+
+                        if trade["side"] == "Buy":
+                            num_bid_takers += 1
+                            size_bid_takers += trade["size"]
+                        else:
+                            num_ask_takers += 1
+                            size_ask_takers += trade["size"]
+
+                        vwap += trade["price"] * trade["size"]
+
+                    # store formatted data
+                    snapshot = {
+                        'timestamp': ts,
+                        'mid_price': mid_price,
+                        'bids': current_bids.copy(),
+                        'asks': current_asks.copy(),
+                        'num_bid_takers': num_bid_takers,
+                        'num_ask_takers': num_ask_takers,
+                        'size_bid_takers': size_bid_takers,
+                        'size_ask_takers': size_ask_takers,
+                        'vwap': vwap
+                    }
+
+                    ob_data.append(ob_format_func(snapshot))
+                    trade_data.append(trade_format_func(snapshot))
+                    mp_data.append(mid_price)
+                    
+            curr_date += timedelta(days=1)
+
+        return ob_data, trade_data, mp_data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def build_data_set(ob_data, trade_data, mp_data, horizon, window_len, steps_between):
 
@@ -202,13 +314,10 @@ def load_ob_data_old(folder, contract, start_date, end_date, exchange, category=
         curr_date = start_date
         while curr_date <= end_date:
 
-            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{
-                zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
-            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{
-                zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
+            filepath_ob = f"{folder}/ob/{category}/{contract}/{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}_{contract}_ob500.data"
+            filepath_trades = f"{folder}/td/{contract}/{contract}{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}.csv.gz"
 
-            print(f"{curr_date.year}-{zero_pad(curr_date.month)
-                                      }-{zero_pad(curr_date.day)}")
+            print(f"{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}")
 
             df = pd.read_csv(filepath_trades, compression='gzip')
             trade_id = 0
