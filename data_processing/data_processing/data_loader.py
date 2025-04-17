@@ -2,8 +2,7 @@ from datetime import timedelta, datetime
 import numpy as np
 import json
 import pandas as pd
-from data_processing.order_book_format import *
-from data_processing.trade_format import *
+from typing import List
 
 
 
@@ -191,14 +190,11 @@ def load_ob_and_trade_data_new(
         feature_data = []
         target_data = []
 
-
-
         curr_date = start_date
         next_ts = start_date + time_delta
-        trade_id = 0
 
         while curr_date <= end_date:
-            
+            trade_id = 0
 
             print(f"{curr_date.year}-{zero_pad(curr_date.month)}-{zero_pad(curr_date.day)}")
             
@@ -208,7 +204,7 @@ def load_ob_and_trade_data_new(
             hist_trade_data = pd.read_csv(filepath_trades, compression='gzip')
             current_bids = None
             current_asks = None
-
+            current_trades = []
 
             with open(filepath_ob, 'rb') as f:
                 for line_number, line in enumerate(f, 1):
@@ -226,27 +222,31 @@ def load_ob_and_trade_data_new(
                                                             data['type'])
                     
 
+                    
+
+                    
+                    # collect trades
+                    while trade_id < len(hist_trade_data) and hist_trade_data.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
+                        trade = hist_trade_data.iloc[trade_id]
+                        current_trades.append(trade)
+                        trade_id += 1
+
                     # skip until next_ts is reached
                     if ts < next_ts:
                         continue
                     next_ts += time_delta
 
-                    
-                    # calculate trade statistics between the last two order books
-                    trades = []
-                    while trade_id < len(hist_trade_data) and hist_trade_data.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
-                        trade = hist_trade_data.iloc[trade_id]
-                        trades.append(trade)
-                        trade_id += 1
-
-
                     # store formatted data
+                    mid_price = (max(current_bids.keys()) + min(current_asks.keys()))/2
+                    #print(mid_price)
+
                     snapshot = {
                         'timestamp': ts,
                         'bids': current_bids.copy(),
                         'asks': current_asks.copy(),
-                        'trades' : trades
+                        'trades' : current_trades
                     }
+                    current_trades = []
 
                     input_feature_creator.feed_datapoint(snapshot)
                     output_feature_creator.feed_datapoint(snapshot)
@@ -259,7 +259,7 @@ def load_ob_and_trade_data_new(
                     
             curr_date += timedelta(days=1)
 
-        return feature_data, target_data
+        return np.array(feature_data), np.array(target_data)
 
 
 
