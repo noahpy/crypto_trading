@@ -3,12 +3,66 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
-
-
-
-
 import numpy as np
 from sklearn.metrics import confusion_matrix, accuracy_score
+
+
+def signed_log_transform(x):
+    """Apply sign-preserving log transformation to data."""
+    # Get the sign of the data
+    signs = np.sign(x)
+    log_abs = np.log1p(np.abs(x))
+    return signs * log_abs
+
+def signed_root_transform(x):
+    """Apply sign-preserving log transformation to data."""
+    # Get the sign of the data
+    signs = np.sign(x)
+    root_abs = np.sqrt(np.abs(x))
+    return signs * root_abs
+
+def normalise(x_train, x_val):
+    # Compute mean and std along the samples axis (axis 0)
+    train_mean = np.mean(x_train, axis=0)
+    train_std = np.std(x_train, axis=0)
+
+    # Normalize while preserving 3D structure
+    x_train = (x_train - train_mean) / train_std
+    x_val = (x_val - train_mean) / train_std
+
+    return x_train, x_val
+
+def normalise_std(x_train, x_val):
+    # Compute mean and std along the samples axis (axis 0)
+    
+    train_std = np.std(x_train, axis=0)
+
+    # Normalize while preserving 3D structure
+    x_train = x_train / train_std
+    x_val = x_val / train_std
+
+    return x_train, x_val
+
+
+
+def build_data_set_from_features(
+        input_features,
+        output_features,
+        window_len,
+        horizon,
+        steps_between):
+    
+    X_data = []
+    Y_data = []
+
+    for i in range(0, len(input_features) - window_len - horizon-1, steps_between):
+        
+        X_data.append(input_features[i:i + window_len])
+        Y_data.append(output_features[i + horizon])
+
+    return np.array(X_data), np.array(Y_data)
+
+
 
 def evaluate_softmax_prediction(prediction, targets):
     """
