@@ -6,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 from data_retrieving.LiveDataRetriever import LiveDataRetriever
 from matplotlib.colors import LinearSegmentedColormap
-from data_processing.order_book import *
+from data_processing.data_loader import *
 import seaborn as sns
 import sys
 
