@@ -154,6 +154,6 @@ class HistoricalDataRetriever:
 if __name__ == "__main__":
     retriever = HistoricalDataRetriever()
     retriever.fetch_historical_orderbook_period_data(
-        datetime(2024, 1, 1), datetime(2024, 1, 2), "CAKEUSDT", "linear")
+        datetime(2025, 4, 10), datetime(2025, 4, 16), "CAKEUSDT", "linear")
     retriever.fetch_historical_trading_period_data(
-        datetime(2024, 1, 1), datetime(2024, 1, 2), "CAKEUSDT", "linear")
+        datetime(2025, 4, 10), datetime(2025, 4, 16), "CAKEUSDT", "linear")

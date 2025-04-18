@@ -7,58 +7,38 @@ import torch.optim as optim
 
 
 
+import numpy as np
+from sklearn.metrics import confusion_matrix, accuracy_score
 
-# Custom dataset
-class OrderBookDataset(Dataset):
-    def __init__(self, features, aux_features, targets):
-        self.features = torch.FloatTensor(features)
-        self.aux_features = torch.FloatTensor(aux_features)
-        self.targets = torch.FloatTensor(targets)
-        
-    def __len__(self):
-        return len(self.features)
+def evaluate_softmax_prediction(prediction, targets):
+    """
+    Evaluate softmax predictions and display percentage-based confusion matrix
+    """
+    # Detach tensors from computation graph and convert to numpy
+    if torch.is_tensor(prediction):
+        prediction = prediction.detach().cpu().numpy()
+    if torch.is_tensor(targets):
+        targets = targets.detach().cpu().numpy()
     
-    def __getitem__(self, idx):
-        return self.features[idx], self.aux_features[idx], self.targets[idx]
-
-
-
-def train_model(model, train_loader, criterion, optimizer, num_epochs=100):
-    losses = []
-    for epoch in range(num_epochs):
-        running_loss = 0.0
-        total_grad_norm = 0.0
-        
-        for features, aux_features, targets in train_loader:
-            # Zero the parameter gradients
-            optimizer.zero_grad()
-            
-            # Forward pass
-            outputs = model(features, aux_features)
-            
-            # Print shapes on first batch of first epoch
-            if epoch == 0 and running_loss == 0.0:
-                print(f"Output shape: {outputs.shape}, Target shape: {targets.shape}")
-            
-            loss = criterion(outputs, targets)
-            
-            # Backward pass and optimize
-            loss.backward()
-            
-            # Calculate gradient norm
-            grad_norm = sum(p.grad.norm().item() for p in model.parameters() if p.grad is not None)
-            total_grad_norm += grad_norm
-            
-            optimizer.step()
-            running_loss += loss.item()
-        
-        epoch_loss = running_loss / len(train_loader)
-        avg_grad_norm = total_grad_norm / len(train_loader)
-        losses.append(epoch_loss)
-        
-        print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Grad Norm: {avg_grad_norm:.4f}')
+    # Convert predictions to class indices
+    pred_classes = np.argmax(prediction, axis=1)
     
-    return model, losses
+    # Calculate accuracy
+    acc = accuracy_score(targets, pred_classes)
+    
+    # Get confusion matrix
+    cm = confusion_matrix(targets, pred_classes)
+    
+    # Convert to percentages
+    cm_percentage = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
+    
+    # Print results
+    print(f"Accuracy: {acc*100:.2f}%")
+    print("Confusion Matrix (percentages):")
+    print(cm_percentage)
+    
+    return acc
+
 
 
 
@@ -105,7 +85,7 @@ def print_enhanced_confusion_matrix(tn, fp, fn, tp):
 
 
 
-def evaluate_trend_prediction(model, features, aux_features, targets):
+def evaluate_mse_prediction(predictions, targets):
     """
     Evaluate model's trend prediction accuracy for time series data with auxiliary features.
     
@@ -119,38 +99,15 @@ def evaluate_trend_prediction(model, features, aux_features, targets):
         dict: Dictionary containing evaluation metrics
     """
     import torch
-
-    # Prepare data and make predictions
-    model.eval()
     
-    # Convert inputs to tensors if they aren't already
-    if not isinstance(features, torch.Tensor):
-        features = torch.FloatTensor(features)
-    if not isinstance(aux_features, torch.Tensor):
-        aux_features = torch.FloatTensor(aux_features)
-    if not isinstance(targets, torch.Tensor):
-        targets = torch.FloatTensor(targets)
     
-    print(f"Processing {features.shape[0]} samples...")
     
     # Make predictions - process one sample at a time
-    all_predictions = []
-    with torch.no_grad():
-        for i in range(features.shape[0]):
-            # Get single sample with time steps
-            sample = features[i:i+1]  # Add batch dimension (1, 50, 20)
-            aux_sample = aux_features[i:i+1]  # Add batch dimension (1, 50, 5)
-            
-            # Make prediction for this sample
-            pred = model(sample, aux_sample)
-            
-            # Store the prediction
-            all_predictions.append(
-                pred.item() if pred.numel() == 1 else pred.squeeze().mean().item()
-            )
+
     
     # Convert predictions to tensor
-    predictions = torch.tensor(all_predictions)
+    predictions = torch.tensor(predictions)
+    targets = torch.tensor(targets)
     
     # Ensure proper shape
     y_true = targets
@@ -242,6 +199,5 @@ def evaluate_trend_prediction(model, features, aux_features, targets):
     plt.savefig('accuracy_by_confidence.png')
     plt.show()
 
-    return y_pred
 
 

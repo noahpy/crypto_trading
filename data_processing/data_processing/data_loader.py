@@ -242,6 +242,7 @@ def load_ob_and_trade_data_new(
 
                     snapshot = {
                         'timestamp': ts,
+                        'mid_price': mid_price,
                         'bids': current_bids.copy(),
                         'asks': current_asks.copy(),
                         'trades' : current_trades
@@ -265,7 +266,22 @@ def load_ob_and_trade_data_new(
 
 
 
+def build_data_set_new(
+        input_features,
+        output_features,
+        window_len,
+        horizon,
+        steps_between):
+    
+    X_data = []
+    Y_data = []
 
+    for i in range(0, len(input_features) - window_len - horizon-1, steps_between):
+        
+        X_data.append(input_features[i:i + window_len])
+        Y_data.append(output_features[i + horizon])
+
+    return np.array(X_data), np.array(Y_data)
 
 
 

@@ -54,5 +54,13 @@ class FeatureCreator:
         print(f"{start_idx} - {end_idx}")
         self.features[f_idx].visualize_feature(features_list[:, start_idx:end_idx])
 
+    def get_feature(self, features_list: np.ndarray, f_idx: int) -> None:
+        start_idx = 0
+        for i in range(f_idx):
+            start_idx += self.features[i].get_feature_size()
+        
+        end_idx = start_idx + self.features[f_idx].get_feature_size()
+        return features_list[:, start_idx:end_idx]
+
 
         

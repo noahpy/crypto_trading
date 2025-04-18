@@ -169,8 +169,6 @@ class TradeFeature(Feature):
         
         return feature
 
-
-
     def visualize_feature(self, features):
         """
         Visualize activated features with slim plots stacked on top of each other.

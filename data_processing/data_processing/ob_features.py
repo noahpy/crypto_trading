@@ -1,5 +1,6 @@
 
 from data_processing.FeatureCreation import Feature
+from data_processing.trade_features import create_feature_subplot
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
@@ -81,6 +82,51 @@ class LevelOBFeature(Feature):
 
 
 
+
+class MidPriceFeature(Feature):
+    """
+    Simple feature class to calculate price volatility from trade data.
+    """
+
+    def __init__(self, timesteps_back=1, inc_mp_change=True, inc_mp=False):
+        
+        self.inc_mp_change = inc_mp_change
+        self.inc_mp = inc_mp
+        self.timesteps_back = timesteps_back
+
+    def get_min_timesteps(self):
+        if not self.inc_mp_change:
+            return 1
+
+        return self.timesteps_back + 1
+    
+    def get_feature_size(self):
+        return sum([self.inc_mp_change, self.inc_mp])
+        
+    def create_feature(self, buffer: List[dict]) -> List[float]:
+        
+        mid_price_curr = buffer[-1]["mid_price"]
+        mid_price_past = buffer[-self.timesteps_back-1]["mid_price"]
+
+        feature = []
+        if self.inc_mp:
+            feature.append(mid_price_curr)
+        if self.inc_mp_change:
+            feature.append(mid_price_curr - mid_price_past)
+
+        return feature
+
+
+    def visualize_feature(self, features):
+        """
+        Visualize the volatility feature with y-axis labels on the inside of the plot
+        and increased height for better visibility.
+        
+        Args:
+            features: A numpy array of feature values where each feature's values form a time series
+        """
+        pass
+        
 
 
 class TrendFeature(Feature):
