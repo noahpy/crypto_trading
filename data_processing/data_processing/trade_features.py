@@ -67,8 +67,8 @@ class TradeFeature(Feature):
             inc_vwap_change=False,
             inc_vol=False,
             inc_vol_change=False,
-            inc_taker_volume=False,
-            inc_taker_volume_change=False
+            inc_taker_vol=False,
+            inc_taker_vol_change=False
             ):
         
         self.timesteps_back = timesteps_back
@@ -79,8 +79,8 @@ class TradeFeature(Feature):
         self.inc_vol = inc_vol
         self.inc_vol_change = inc_vol_change
         
-        self.inc_taker = inc_taker_volume
-        self.inc_taker_change = inc_taker_volume_change
+        self.inc_taker = inc_taker_vol
+        self.inc_taker_change = inc_taker_vol_change
 
         self.inc_change = (self.inc_vwap_change or self.inc_vol_change or self.inc_taker_change)
         self.timesteps_back = timesteps_back
