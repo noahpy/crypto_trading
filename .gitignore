@@ -8,3 +8,4 @@ data/
 api_key.*
 data/
 /old
+.python-version
