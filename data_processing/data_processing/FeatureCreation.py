@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from typing import List
 import numpy as np
 
+
 class Feature(ABC):
-    
+
     @abstractmethod
     def get_min_timesteps(self) -> int:
         """Returns minimum number of timesteps needed for this feature."""
@@ -41,18 +42,18 @@ class FeatureCreator:
             raise Exception("Not enough data!")
         feature_vector = np.array([])
         for f in self.features:
-            feature_vector = np.concatenate((feature_vector, f.create_feature(self.buffer)))
+            feature_vector = np.concatenate(
+                (feature_vector, f.create_feature(self.buffer)))
         return feature_vector
 
-
-    def visualize(self, features_list: np.ndarray, f_idx: int) -> None:
+    def visualize(self, features_data_list: np.ndarray, f_idx: int) -> None:
         start_idx = 0
         for i in range(f_idx):
             start_idx += self.features[i].get_feature_size()
-        
+
         end_idx = start_idx + self.features[f_idx].get_feature_size()
         print(f"{start_idx} - {end_idx}")
-        self.features[f_idx].visualize_feature(features_list[:, start_idx:end_idx])
+        self.features[f_idx].visualize_feature(features_data_list[:, start_idx:end_idx])
 
     def get_feature(self, features_list: np.ndarray, f_idx: int) -> None:
         start_idx = 0
@@ -61,6 +62,5 @@ class FeatureCreator:
         
         end_idx = start_idx + self.features[f_idx].get_feature_size()
         return features_list[:, start_idx:end_idx]
-
 
         
