@@ -116,7 +116,7 @@ class LiveDataRetriever:
                     raise Exception("Wait time too long: " + str(wait_time))
                 trades = self.session.get_public_trade_history(
                     category=category, symbol=symbol, limit=limit)
-                return trades
+                return trades["result"]
             except Exception as e:
                 print("Error fetching recent trades!")
                 print(e)
@@ -168,7 +168,7 @@ if __name__ == "__main__":
             ld.fetch_recent_trading_history("BTCUSDT")
 
     # increasing the number of processes will increase the number of requests linearly
-    p1 = Process(target=loop)
+    p1 = Process(target=loop2)
     p2 = Process(target=loop2)
     p3 = Process(target=loop2)
     p1.start()
@@ -185,5 +185,6 @@ if __name__ == "__main__":
 
     p1.terminate()
     p2.terminate()
+    p3.terminate()
 
     del ld
