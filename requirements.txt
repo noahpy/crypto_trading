@@ -4,6 +4,8 @@ seaborn
 scipy
 torch
 pybit
+scikit-learn
 -e ./data_processing
 -e ./data_retrieving
--e ./ml_models
+-e ./machine_learning
+-e ./backtesting
