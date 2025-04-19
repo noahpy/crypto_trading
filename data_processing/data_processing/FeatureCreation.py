@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Callable
 import numpy as np
 
 
@@ -10,16 +10,24 @@ class Feature(ABC):
         """Returns minimum number of timesteps needed for this feature."""
         pass
 
+    @abstractmethod
     def create_feature(self, buffer: List[dict]) -> List[float]:
         """Extracts feature values from the data buffer."""
         pass
 
-    def get_feature_size() -> int:
+    @abstractmethod
+    def get_feature_size(self) -> int:
         """Returns the number of values this feature needs."""
         pass
 
+    @abstractmethod
     def visualize_feature(self, features: np.ndarray) -> None:
         """Visualizes this feature's data over time"""
+        pass
+
+    @abstractmethod
+    def get_feature_names_and_toggle_function(self) -> List[(str, Callable)]:
+        """Returns the names of the features"""
         pass
 
 
@@ -46,11 +54,15 @@ class FeatureCreator:
                 (feature_vector, f.create_feature(self.buffer)))
         return feature_vector
 
-    def visualize(self, features_data_list: np.ndarray, f_idx: int) -> None:
+    def visualize(self, features_data_list: np.ndarray) -> None:
         start_idx = 0
-        for i in range(f_idx):
-            start_idx += self.features[i].get_feature_size()
+        for f in self.features:
+            end_idx = start_idx + f.get_feature_size()
+            f.visualize_feature(features_data_list[:, start_idx:end_idx])
+            start_idx = end_idx
 
+    def visualize_at(self, features_data_list: np.ndarray, f_idx: int) -> None:
+        start_idx = sum([f.get_feature_size() for f in self.features[:f_idx]])
         end_idx = start_idx + self.features[f_idx].get_feature_size()
         print(f"{start_idx} - {end_idx}")
         self.features[f_idx].visualize_feature(features_data_list[:, start_idx:end_idx])
@@ -62,5 +74,6 @@ class FeatureCreator:
         
         end_idx = start_idx + self.features[f_idx].get_feature_size()
         return features_list[:, start_idx:end_idx]
+
 
         
