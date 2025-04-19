@@ -3,7 +3,6 @@ from data_retrieving.LiveDataRetriever import LiveDataRetriever
 from datetime import timedelta, datetime
 from multiprocessing import Queue, Process
 from signal import signal, SIGINT
-from threading import Thread
 import time
 
 

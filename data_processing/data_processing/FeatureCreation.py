@@ -26,7 +26,12 @@ class Feature(ABC):
         pass
 
     @abstractmethod
-    def get_feature_names_and_toggle_function(self) -> List[(str, Callable)]:
+    def get_feature_name(self) -> str:
+        """Returns the names of the features"""
+        pass
+
+    @abstractmethod
+    def get_subfeature_names_and_toggle_function(self) -> List[List]:
         """Returns the names of the features"""
         pass
 
@@ -65,15 +70,13 @@ class FeatureCreator:
         start_idx = sum([f.get_feature_size() for f in self.features[:f_idx]])
         end_idx = start_idx + self.features[f_idx].get_feature_size()
         print(f"{start_idx} - {end_idx}")
-        self.features[f_idx].visualize_feature(features_data_list[:, start_idx:end_idx])
+        self.features[f_idx].visualize_feature(
+            features_data_list[:, start_idx:end_idx])
 
     def get_feature(self, features_list: np.ndarray, f_idx: int) -> None:
         start_idx = 0
         for i in range(f_idx):
             start_idx += self.features[i].get_feature_size()
-        
+
         end_idx = start_idx + self.features[f_idx].get_feature_size()
         return features_list[:, start_idx:end_idx]
-
-
-        
