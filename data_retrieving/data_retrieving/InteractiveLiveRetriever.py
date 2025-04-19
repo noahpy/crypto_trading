@@ -9,6 +9,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from data_processing.data_loader import *
 import seaborn as sns
 import sys
+from datetime import datetime
 
 api_key_path = "./api_key.json"
 
@@ -18,6 +19,24 @@ def zero_pad(x, tick_size):
         return str(x) + "0"
     else:
         return str(x)
+
+
+def convert_bybit_ob_to_snapshot(order_book):
+    """
+    This function takes a live bybit order book and converts it into a format that is better to work with
+    """
+
+    ts = datetime.fromtimestamp(order_book['ts']/1000)
+
+    # Convert bids list to dictionary with validation
+    bids = {float(price): float(size) for price, size in order_book['b']}
+
+    # Convert asks list to dictionary with validation
+    asks = {float(price): float(size) for price, size in order_book['a']}
+
+    mid_price = (min(asks.keys()) + max(bids.keys()))/2
+
+    return {"ts": ts, "mid_price": mid_price, "bids": bids, "asks": asks}
 
 
 class InteractiveLiveRetriever(tk.Tk):
@@ -237,7 +256,7 @@ class InteractiveLiveRetriever(tk.Tk):
 
                     # Update status
                     self.after(0, lambda: self.status_label.config(
-                        text=f"Updated at {time.strftime('%H:%M:%S')} - {symbol} - {len(self.ob_history)} snapshots"
+                        text=f"Updated at {time.strftime( '%H:%M:%S')} - {symbol} - {len(self.ob_history)} snapshots"
                     ))
 
                     # Sleep for time delta
