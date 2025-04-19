@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Callable
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -21,13 +22,8 @@ class Feature(ABC):
         pass
 
     @abstractmethod
-    def visualize_feature(self, features: np.ndarray) -> None:
+    def visualize_feature(self, features: np.ndarray, ax: plt.Axes = None) -> None:
         """Visualizes this feature's data over time"""
-        pass
-
-    @abstractmethod
-    def get_feature_name(self) -> str:
-        """Returns the names of the features"""
         pass
 
     @abstractmethod

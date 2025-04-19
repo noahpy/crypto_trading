@@ -34,9 +34,6 @@ class LevelOBFeature(Feature):
         else:
             return self.num_levels * 2
 
-    def get_feature_name(self):
-        return "level_orderbook"
-
     def get_subfeature_names_and_toggle_function(self):
         return []
 
@@ -70,18 +67,28 @@ class LevelOBFeature(Feature):
 
         return level_data - past_level_data
 
-    def visualize_feature(self, features):
+    def visualize_feature(self, features, ax=None):
 
-        plt.figure(figsize=(15, 5))
-        sns.heatmap(
-            features.T,
-            cmap='viridis_r',
-            cbar=False)  # , vmin=-5, vmax=100)
+        if ax is None:
+            plt.figure(figsize=(15, 5))
+            sns.heatmap(
+                features.T,
+                cmap='viridis_r',
+                cbar=False)  # , vmin=-5, vmax=100)
 
-        plt.gca()
-        plt.title("Order Book Levels", fontsize=14)
-        plt.tight_layout()  # This helps with overall spacing
-        plt.show()
+            plt.gca()
+            plt.title("Order Book Levels", fontsize=14)
+            plt.tight_layout()  # This helps with overall spacing
+            plt.show()
+        else:
+            sns.heatmap(
+                features.T,
+                cmap='viridis_r',
+                cbar=False,
+                ax=ax
+            )
+            ax.set_title("Order Book Levels", fontsize=14)
+
 
 
 class MidPriceFeature(Feature):
@@ -103,9 +110,6 @@ class MidPriceFeature(Feature):
 
     def get_feature_size(self):
         return sum([self.inc_mp_change, self.inc_mp])
-
-    def get_feature_name(self):
-        return "mid_price"
 
     def get_subfeature_names_and_toggle_function(self):
         return [
@@ -176,8 +180,17 @@ class TrendFeature(Feature):
         else:
             return [0, 0, 1]
 
-    def visualize_feature(self, features):
+    def visualize_feature(self, features, ax=None):
 
+        if ax is not None:
+            sns.heatmap(
+                features.T,
+                cmap='viridis_r',
+                cbar=False,
+                ax=ax
+            )
+            ax.set_title("Price Trends", fontsize=14)
+            return
         plt.figure(figsize=(15, 2))
         sns.heatmap(
             features.T,

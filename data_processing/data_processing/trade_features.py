@@ -211,7 +211,7 @@ class TradeFeature(Feature):
 
         return feature
 
-    def visualize_feature(self, features):
+    def visualize_feature(self, features, ax=None):
         """
         Visualize activated features with slim plots stacked on top of each other.
         Combines bid and ask taker features into single plots.
@@ -240,8 +240,12 @@ class TradeFeature(Feature):
             return
 
         # Create figure with subplots stacked vertically - increased height from 1.5 to 2.0
-        fig, axes = plt.subplots(num_plots, 1, figsize=(
-            10, 2.0 * num_plots), sharex=True)
+
+        if ax is None:
+            fig, axes = plt.subplots(num_plots, 1, figsize=(
+                10, 2.0 * num_plots), sharex=True)
+        else:
+            axes = ax
 
         # Handle case with only one subplot
         if num_plots == 1:
@@ -333,11 +337,13 @@ class TradeFeature(Feature):
                 'Ask Δ'
             )
 
-        # Set common labels and adjust layout
-        plt.xlabel('Time Step')
-        plt.tight_layout()
-        plt.subplots_adjust(hspace=0.3)  # Add space between subplots
-        plt.show()
+        if ax is None:
+            # Set common labels and adjust layout
+            plt.xlabel('Time Step')
+            plt.tight_layout()
+            plt.subplots_adjust(hspace=0.3)  # Add space between subplots
+            plt.show()
+
 
 
 class VolatilityFeature(Feature):
@@ -409,7 +415,7 @@ class VolatilityFeature(Feature):
 
         return [volatility]
 
-    def visualize_feature(self, features):
+    def visualize_feature(self, features, ax=None):
         """
         Visualize the volatility feature with y-axis labels on the inside of the plot
         and increased height for better visibility.
@@ -419,8 +425,11 @@ class VolatilityFeature(Feature):
         """
         # Create figure with subplots - with increased height (2.0 instead of 1.5)
         num_plots = 1
-        fig, axes = plt.subplots(num_plots, 1, figsize=(
-            10, 2.0 * num_plots), sharex=True)
+        if not ax:
+            fig, axes = plt.subplots(num_plots, 1, figsize=(
+                10, 2.0 * num_plots), sharex=True)
+        else:
+            axes = ax
 
         # Handle case with only one subplot
         if num_plots == 1:
@@ -439,8 +448,9 @@ class VolatilityFeature(Feature):
             'purple'
         )
 
-        # Set common labels and adjust layout
-        plt.xlabel('Time Step')
-        plt.tight_layout()
-        plt.subplots_adjust(hspace=0.3)  # Add space between subplots
-        plt.show()
+        if ax is None:
+            # Set common labels and adjust layout
+            plt.xlabel('Time Step')
+            plt.tight_layout()
+            plt.subplots_adjust(hspace=0.3)  # Add space between subplots
+            plt.show()

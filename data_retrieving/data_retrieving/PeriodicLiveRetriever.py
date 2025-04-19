@@ -31,9 +31,19 @@ class PeriodicLiveRetriever():
         self.symbol = symbol
         self.category = category
 
+    def __del__(self):
+        print("Cleaning up PeriodicLiveRetriever...")
+        self.ob_process.terminate()
+        self.trades_process.terminate()
+        try:
+            del self.ld
+        except:
+            pass
+
     def get_ob_process(self):
         def interpret_sigint(signum, frame):
             print("Received SIGINT at PeriodicLiveRetriever subprocess, cleaning up...")
+            # frame.f_locals['self.ld'].__del__()
             del self.ld
             exit(0)
 
@@ -79,7 +89,16 @@ class PeriodicLiveRetriever():
 if __name__ == "__main__":
     ld = PeriodicLiveRetriever(
         "apiKey.json", timedelta(milliseconds=650), "CAKEUSDT", "linear")
-    while True:
+
+    # def interpret_sigint(signum, frame):
+    #     print("Received SIGINT at main process, cleaning up...")
+    #     print(frame.f_locals.keys())
+    #     frame.f_locals['self'].ld.__del__()
+    #     exit(0)
+
+    # signal(SIGINT, interpret_sigint)
+    t = time.time()
+    while time.time() - t < 10:
         pass
         ld.ob_data_queue.get(block=True)
         ld.trades_data_queue.get(block=True)
