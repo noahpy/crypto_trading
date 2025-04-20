@@ -88,7 +88,7 @@ class DataLoader:
 
                     # read data from line
                     data = json.loads(line.decode('utf-8'))
-                    ts = datetime.fromtimestamp(data['ts']/1000)
+                    ts = datetime.fromtimestamp(data['ts']/1000, tz=pytz.UTC)
                     new_bids = {float(price): float(size)
                                 for price, size in data['data']['b']}
                     new_asks = {float(price): float(size)
@@ -100,15 +100,18 @@ class DataLoader:
                         new_bids, new_asks,
                         data['type'])
 
-                    # collect trades
-                    while trade_id < len(hist_trade_data) and hist_trade_data.iloc[trade_id]["timestamp"] <= data["ts"]/1000:
-                        trade = hist_trade_data.iloc[trade_id]
-                        current_trades.append(trade)
-                        trade_id += 1
-
                     # skip until next_ts is reached
                     if ts < next_ts:
                         continue
+                    
+
+                    # collect trades
+                    next_ts_unix = next_ts.timestamp()
+                    while trade_id < len(hist_trade_data) and hist_trade_data.iloc[trade_id]["timestamp"] <= next_ts_unix:
+                        trade = hist_trade_data.iloc[trade_id]
+                        current_trades.append({"side": trade["side"], "size": trade["size"], "price": trade["price"]})
+                        trade_id += 1
+
                     next_ts += time_delta
 
                     # store formatted data
@@ -160,6 +163,11 @@ class DataLoader:
             return []
         
         try:
+
+            #with open(filepath_ob, 'rb') as f:
+            #    # Read in chunks if the file is large
+            #    lines = f.readlines()
+                
             hist_trade_data = pd.read_csv(filepath_trades, compression='gzip')
             current_bids = None
             current_asks = None
@@ -167,8 +175,11 @@ class DataLoader:
             next_ts = curr_date + time_delta
             trade_id = 0
             
+            #for line_number, line in enumerate(lines):
+            
             with open(filepath_ob, 'rb') as f:
                 for line_number, line in enumerate(f, 1):
+            
                     # read data from line
                     data = json.loads(line.decode('utf-8'))
                     ts = datetime.fromtimestamp(data['ts']/1000, tz=pytz.UTC)
