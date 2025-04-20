@@ -107,7 +107,7 @@ class SimpleStrategy(Strategy):
         min_ask = min(snapshot["asks"].keys())
         max_bid = max(snapshot["bids"].keys())
         spread = min_ask - max_bid
-        if prediction < spread:
+        if abs(prediction) < 0.2:
             return orders, next_ts
 
         # build orders

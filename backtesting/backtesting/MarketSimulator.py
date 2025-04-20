@@ -156,6 +156,7 @@ class MarketSimulator():
                     
                     if coin_change != 0:
                         print(orders)
+                        print(ts)
                         print(f"coin_position: {coin_position}")
                         print(f"cash_position: {cash_position}")
 
