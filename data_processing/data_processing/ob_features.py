@@ -12,8 +12,8 @@ class LevelOBFeature(Feature):
     def __init__(
             self,
             num_levels=10,
-            change=True,
-            include_prices=False):
+            change=False,
+            include_prices=True):
 
         self.num_levels = num_levels
         self.change = change
@@ -90,13 +90,12 @@ class LevelOBFeature(Feature):
             ax.set_title("Order Book Levels", fontsize=14)
 
 
-
 class MidPriceFeature(Feature):
     """
     Simple feature class to calculate price volatility from trade data.
     """
 
-    def __init__(self, timesteps_back=1, inc_mp_change=True, inc_mp=False):
+    def __init__(self, timesteps_back=1, inc_mp_change=False, inc_mp=False):
 
         self.inc_mp_change = inc_mp_change
         self.inc_mp = inc_mp
@@ -123,6 +122,14 @@ class MidPriceFeature(Feature):
     def toggle_mp_change(self):
         self.inc_mp_change = not self.inc_mp_change
 
+    def turn_all_subfeatures_on(self):
+        self.inc_mp = True
+        self.inc_mp_change = True
+
+    def turn_all_subfeatures_off(self):
+        self.inc_mp = False
+        self.inc_mp_change = False
+
     def create_feature(self, buffer: List[dict]) -> List[float]:
 
         mid_price_curr = buffer[-1]["mid_price"]
@@ -136,7 +143,7 @@ class MidPriceFeature(Feature):
 
         return feature
 
-    def visualize_feature(self, features):
+    def visualize_feature(self, features, ax=None):
         """
         Visualize the volatility feature with y-axis labels on the inside of the plot
         and increased height for better visibility.
@@ -144,7 +151,29 @@ class MidPriceFeature(Feature):
         Args:
             features: A numpy array of feature values where each feature's values form a time series
         """
-        pass
+        if not ax:
+            if self.get_feature_size() == 1:
+                plt.figure(figsize=(15, 5))
+                plt.plot(features, linewidth=1)
+                plt.show()
+                return
+
+            plt.figure(figsize=(15, 5))
+            plt.plot(features[:, 0], linewidth=1, color='b', label='mid_price')
+            plt.plot(features[:, 1], linewidth=1,
+                     color='g', label='mid_price_change')
+            plt.legend(loc='upper right', fontsize=8)
+            plt.show()
+            return
+
+        if self.get_feature_size() == 1:
+            ax.plot(features, linewidth=1)
+            return
+
+        ax.plot(features[:, 0], linewidth=1, color='b', label='mid_price')
+        ax.plot(features[:, 1], linewidth=1,
+                color='g', label='mid_price_change')
+        ax.legend(loc='upper right', fontsize=8)
 
 
 class TrendFeature(Feature):
