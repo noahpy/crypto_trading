@@ -92,7 +92,7 @@ class LevelOBFeature(Feature):
 
 class MidPriceFeature(Feature):
     """
-    Simple feature class to calculate price volatility from trade data.
+    Simple feature class to calculate the mid_price
     """
 
     def __init__(self, timesteps_back=1, inc_mp_change=False, inc_mp=False):
@@ -131,14 +131,16 @@ class MidPriceFeature(Feature):
         self.inc_mp_change = False
 
     def create_feature(self, buffer: List[dict]) -> List[float]:
+        
+        
 
         mid_price_curr = buffer[-1]["mid_price"]
-        mid_price_past = buffer[-self.timesteps_back-1]["mid_price"]
-
+    
         feature = []
         if self.inc_mp:
             feature.append(mid_price_curr)
         if self.inc_mp_change:
+            mid_price_past = buffer[-self.timesteps_back-1]["mid_price"]
             feature.append(mid_price_curr - mid_price_past)
 
         return feature

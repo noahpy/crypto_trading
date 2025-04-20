@@ -4,7 +4,7 @@ import pandas as pd
 import json
 
 
-class MarketSimulator():
+class HistoricMarketSimulator():
 
 
     def __init__(self, folder: str):

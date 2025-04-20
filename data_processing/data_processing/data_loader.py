@@ -123,10 +123,8 @@ class DataLoader:
                     input_feature_creator.feed_datapoint(snapshot)
                     output_feature_creator.feed_datapoint(snapshot)
 
-                    if input_feature_creator.is_ready():
+                    if input_feature_creator.is_ready() and output_feature_creator.is_ready():
                         feature_data.append(input_feature_creator.create_features())
-
-                    if output_feature_creator.is_ready():
                         target_data.append(output_feature_creator.create_features())
 
             curr_date += timedelta(days=1)

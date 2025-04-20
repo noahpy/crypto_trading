@@ -292,7 +292,7 @@ class InteractiveLiveProcessor(tk.Tk):
 
 
 if __name__ == "__main__":
-    api_key_path = "apiKey.json"
+    api_key_path = "api_key.json"
     if len(sys.argv) > 1:
         api_key_path = sys.argv[1]
     app = InteractiveLiveProcessor(api_key_path)
