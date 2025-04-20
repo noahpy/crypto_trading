@@ -132,3 +132,21 @@ class DataLoader:
             curr_date += timedelta(days=1)
 
         return np.array(feature_data), np.array(target_data)
+
+
+def convert_bybit_ob_to_snapshot(order_book):
+    """
+    This function takes a live bybit order book and converts it into a format that is better to work with
+    """
+
+    ts = datetime.fromtimestamp(order_book['ts']/1000)
+
+    # Convert bids list to dictionary with validation
+    bids = {float(price): float(size) for price, size in order_book['b']}
+
+    # Convert asks list to dictionary with validation
+    asks = {float(price): float(size) for price, size in order_book['a']}
+
+    mid_price = (min(asks.keys()) + max(bids.keys()))/2
+
+    return {"ts": ts, "mid_price": mid_price, "bids": bids, "asks": asks}

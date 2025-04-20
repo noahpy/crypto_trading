@@ -3,6 +3,7 @@ from data_processing.FeatureCreation import Feature
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 
 def create_feature_subplot(ax, data, title, color, label=None, second_data=None, second_color=None, second_label=None):
@@ -133,6 +134,22 @@ class TradeFeature(Feature):
     def toggle_taker_change(self):
         self.inc_taker_change = not self.inc_taker_change
 
+    def turn_all_subfeatures_on(self):
+        self.inc_vwap = True
+        self.inc_vwap_change = True
+        self.inc_vol = True
+        self.inc_vol_change = True
+        self.inc_taker = True
+        self.inc_taker_change = True
+
+    def turn_all_subfeatures_off(self):
+        self.inc_vwap = False
+        self.inc_vwap_change = False
+        self.inc_vol = False
+        self.inc_vol_change = False
+        self.inc_taker = False
+        self.inc_taker_change = False
+
     def create_feature(self, buffer: List[dict]) -> List[float]:
 
         feature = []
@@ -213,51 +230,42 @@ class TradeFeature(Feature):
 
     def visualize_feature(self, features, ax=None):
         """
-        Visualize activated features with slim plots stacked on top of each other.
-        Combines bid and ask taker features into single plots.
-        Places y-axis labels inside the plots with increased height.
-
-        Args:
-            features: A list of feature values where each feature's values form a time series
+        Visualize activated features stacked vertically inside a given ax's figure.
         """
-        # Determine how many subplots we need (excluding taker features which will be combined)
-        num_plots = 0
-        if self.inc_vwap:
-            num_plots += 1
-        if self.inc_vwap_change:
-            num_plots += 1
-        if self.inc_vol:
-            num_plots += 1
-        if self.inc_vol_change:
-            num_plots += 1
-        if self.inc_taker:
-            num_plots += 1  # Combined plot for bid/ask takers
-        if self.inc_taker_change:
-            num_plots += 1  # Combined plot for bid/ask taker changes
+
+        # Count active plots
+        num_plots = sum([
+            self.inc_vwap,
+            self.inc_vwap_change,
+            self.inc_vol,
+            self.inc_vol_change,
+            self.inc_taker,
+            self.inc_taker_change
+        ])
 
         if num_plots == 0:
             print("No features selected for visualization")
             return
 
-        # Create figure with subplots stacked vertically - increased height from 1.5 to 2.0
-
+        # Use provided ax and clear it
         if ax is None:
-            fig, axes = plt.subplots(num_plots, 1, figsize=(
-                10, 2.0 * num_plots), sharex=True)
+            fig, axs = plt.subplots(num_plots, 1, figsize=(
+                12, 2.0 * num_plots), sharex=True)
+            # Ensure axs is iterable
+            if num_plots == 1:
+                axs = [axs]
         else:
-            axes = ax
-
-        # Handle case with only one subplot
-        if num_plots == 1:
-            axes = [axes]
+            fig = ax.figure
+            ax.clear()
+            gs = gridspec.GridSpec(num_plots, 1, figure=fig, hspace=0.4)
+            axs = [fig.add_subplot(gs[i]) for i in range(num_plots)]
 
         plot_idx = 0
         feature_idx = 0
 
-        # Plot VWAP if included
         if self.inc_vwap:
             create_feature_subplot(
-                axes[plot_idx],
+                axs[plot_idx],
                 features[:, feature_idx],
                 'VWAP',
                 'blue'
@@ -265,10 +273,9 @@ class TradeFeature(Feature):
             plot_idx += 1
             feature_idx += 1
 
-        # Plot VWAP change if included
         if self.inc_vwap_change:
             create_feature_subplot(
-                axes[plot_idx],
+                axs[plot_idx],
                 features[:, feature_idx],
                 'VWAP Change',
                 'cyan'
@@ -276,10 +283,9 @@ class TradeFeature(Feature):
             plot_idx += 1
             feature_idx += 1
 
-        # Plot volume if included
         if self.inc_vol:
             create_feature_subplot(
-                axes[plot_idx],
+                axs[plot_idx],
                 features[:, feature_idx],
                 'Volume',
                 'green'
@@ -287,10 +293,9 @@ class TradeFeature(Feature):
             plot_idx += 1
             feature_idx += 1
 
-        # Plot volume change if included
         if self.inc_vol_change:
             create_feature_subplot(
-                axes[plot_idx],
+                axs[plot_idx],
                 features[:, feature_idx],
                 'Volume Change',
                 'lime'
@@ -298,52 +303,40 @@ class TradeFeature(Feature):
             plot_idx += 1
             feature_idx += 1
 
-        # Plot taker volumes (combining bid and ask) if included
         if self.inc_taker:
-            # Access bid and ask taker values
-            bid_takers = features[:, feature_idx]
+            bid = features[:, feature_idx]
             feature_idx += 1
-            ask_takers = features[:, feature_idx]
+            ask = features[:, feature_idx]
             feature_idx += 1
-
             create_feature_subplot(
-                axes[plot_idx],
-                bid_takers,
+                axs[plot_idx],
+                bid,
                 'Taker Volumes',
                 'red',
                 'Bid Takers',
-                ask_takers,
+                ask,
                 'orange',
                 'Ask Takers'
             )
             plot_idx += 1
 
-        # Plot taker volume changes (combining bid and ask changes) if included
         if self.inc_taker_change:
-            # Access bid and ask taker change values
-            bid_takers_change = features[:, feature_idx]
+            bid = features[:, feature_idx]
             feature_idx += 1
-            ask_takers_change = features[:, feature_idx]
+            ask = features[:, feature_idx]
             feature_idx += 1
-
             create_feature_subplot(
-                axes[plot_idx],
-                bid_takers_change,
+                axs[plot_idx],
+                bid,
                 'Taker Volume Changes',
                 'darkred',
                 'Bid Δ',
-                ask_takers_change,
+                ask,
                 'darkorange',
                 'Ask Δ'
             )
 
-        if ax is None:
-            # Set common labels and adjust layout
-            plt.xlabel('Time Step')
-            plt.tight_layout()
-            plt.subplots_adjust(hspace=0.3)  # Add space between subplots
-            plt.show()
-
+        fig.tight_layout()
 
 
 class VolatilityFeature(Feature):
