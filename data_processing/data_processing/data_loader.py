@@ -280,6 +280,8 @@ class DataLoader:
                     
                     if feature_creator.is_ready():
                         feature_data.append(feature_creator.create_features())
+
+                del day_snapshots
                         
         
         return np.array(feature_data)
