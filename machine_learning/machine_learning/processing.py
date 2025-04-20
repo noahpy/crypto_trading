@@ -30,6 +30,9 @@ class NormalizedModel(nn.Module):
         self.output_mean = torch.mean(y_train, axis=0) if norm_output_mean else 0
         self.output_std = torch.std(y_train, axis=0) if norm_output_std else 1
 
+
+        
+
         self.use_softmax = base_model.use_softmax
         self.loss_function = base_model.loss_function
 
