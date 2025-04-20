@@ -37,30 +37,37 @@ class NormalizedModel(nn.Module):
 
         x_norm = (x - self.input_mean) / self.input_std
         y = self.base_model(x_norm)
-        y_norm =  y * self.output_std + self.output_mean
+        y_denorm =  y * self.output_std + self.output_mean
 
-        return y_norm
-
-
+        return y_denorm
 
 
 
 
-def build_data_set_from_features(
-        input_features,
-        output_features,
-        window_len,
+
+
+def build_mp_change_prediction_data_set(
+        features,
+        feature_creator,
+        mp_f_index,
         horizon,
+        input_length,
         steps_between):
     
     X_data = []
     Y_data = []
 
-    for i in range(0, len(input_features) - window_len - horizon-1, steps_between):
-        
-        X_data.append(input_features[i:i + window_len])
-        Y_data.append(output_features[i + window_len + horizon - 1])
+    mp_data = feature_creator.get_feature(features, mp_f_index)
 
+    for i in range(0, len(features) - input_length - horizon-1, steps_between):
+        
+        X_data.append(features[i:i + input_length])
+
+        mp_future = mp_data[i+input_length+horizon-1]
+        mp_now = mp_data[i+input_length-1]
+
+        Y_data.append(mp_future - mp_now)
+        
     return np.array(X_data), np.array(Y_data)
 
 

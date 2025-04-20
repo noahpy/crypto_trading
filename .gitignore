@@ -6,6 +6,6 @@ apiKey.*
 data/
 *.egg-info/
 api_key.*
-data/
+data/ d
 /old
 .python-version

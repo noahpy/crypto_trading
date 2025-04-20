@@ -10,6 +10,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score
     This file contains functions for evaluation during and after training
 """
 
+
 ## Metrics for Training ##
 
 
@@ -49,7 +50,6 @@ def trend_accuracy_metric(y_pred, y_true):
     conf_str = " ".join([f"{k}%={v:.3f}" for k, v in intervals.items()])
     
     return f"Acc={accuracy:.3f} | {conf_str}"
-
 
 
 ## Final Evaluation ##
