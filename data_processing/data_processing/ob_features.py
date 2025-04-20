@@ -13,7 +13,7 @@ class LevelOBFeature(Feature):
             self,
             num_levels=10,
             change=False,
-            include_prices=True):
+            include_prices=False):
 
         self.num_levels = num_levels
         self.change = change
