@@ -89,6 +89,13 @@ class LevelOBFeature(Feature):
             )
             ax.set_title("Order Book Levels", fontsize=14)
 
+    def turn_all_subfeatures_on(self):
+        pass
+
+    def turn_all_subfeatures_off(self):
+        pass
+
+
 
 class MidPriceFeature(Feature):
     """
@@ -232,3 +239,10 @@ class TrendFeature(Feature):
         plt.title("Price Trends", fontsize=14)
         plt.tight_layout()  # This helps with overall spacing
         plt.show()
+
+    def turn_all_subfeatures_on(self):
+        pass
+
+    def turn_all_subfeatures_off(self):
+        pass
+

@@ -4,6 +4,7 @@ from datetime import timedelta, datetime
 from multiprocessing import Queue, Process, Value, Manager
 from signal import signal, SIGINT
 import time
+from ctypes import c_char_p
 
 
 def get_ob_process(ld, symbol, category, ob_data_queue, rq_time_ms, limit=50):
@@ -38,8 +39,9 @@ class PeriodicLiveRetriever():
         self.ob_data_queue = Queue()
         self.trades_data_queue = Queue()
         self.data_queue = Queue()
-        self.symbol = symbol
-        self.category = category
+        self.manager = Manager()
+        self.symbol = self.manager.Value(c_char_p, symbol)
+        self.category = self.manager.Value(c_char_p, category)
         self.start_time_ms = int(datetime.now().timestamp() * 1000)
         self.run_spawner = Value('b', False)
         self.spawner_process = Process(
@@ -54,8 +56,8 @@ class PeriodicLiveRetriever():
         self.update_time_interval_ms.value = update_time_interval_ms
 
     def set_currency(self, symbol: str, category: str):
-        self.symbol = symbol
-        self.category = category
+        self.symbol.value = symbol
+        self.category.value = category
 
     def start(self):
         self.run_spawner.value = True
@@ -104,11 +106,11 @@ class PeriodicLiveRetriever():
                 # only start if required
                 if self.run_spawner.value:
                     ob_process = Process(
-                        target=get_ob_process, args=(self.ld, self.symbol,
-                                                     self.category, self.ob_data_queue, next_time_ms))
+                        target=get_ob_process, args=(self.ld, self.symbol.value,
+                                                     self.category.value, self.ob_data_queue, next_time_ms))
                     trade_process = Process(
-                        target=get_trades_process, args=(self.ld, self.symbol,
-                                                         self.category, self.trades_data_queue, next_time_ms))
+                        target=get_trades_process, args=(self.ld, self.symbol.value,
+                                                         self.category.value, self.trades_data_queue, next_time_ms))
 
                     ob_process.start()
                     trade_process.start()

@@ -31,6 +31,13 @@ class Feature(ABC):
         """Returns the names of the features"""
         pass
 
+    @abstractmethod
+    def turn_all_subfeatures_on(self):
+        pass
+
+    @abstractmethod
+    def turn_all_subfeatures_off(self):
+        pass
 
 class FeatureCreator:
 
