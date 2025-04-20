@@ -1,9 +1,29 @@
 
 from data_retrieving.LiveDataRetriever import LiveDataRetriever
 from datetime import timedelta, datetime
-from multiprocessing import Queue, Process, Value
+from multiprocessing import Queue, Process, Value, Manager
 from signal import signal, SIGINT
 import time
+
+
+def get_ob_process(ld, symbol, category, ob_data_queue, rq_time_ms, limit=50):
+
+    ob_data = ld.fetch_current_orderbook(
+        symbol, category, limit=50)
+    if ob_data is not None:
+        time_passed_requesting = int(
+            datetime.now().timestamp() * 1000) - rq_time_ms
+        ob_data_queue.put([rq_time_ms, time_passed_requesting, ob_data])
+
+
+def get_trades_process(ld, symbol, category, trades_data_queue, rq_time_ms):
+
+    trade_data = ld.fetch_recent_trading_history(
+        symbol, category, )
+    if trade_data is not None:
+        time_passed_requesting = int(
+            datetime.now().timestamp() * 1000) - rq_time_ms
+        trades_data_queue.put([rq_time_ms, time_passed_requesting, trade_data])
 
 
 class PeriodicLiveRetriever():
@@ -14,122 +34,149 @@ class PeriodicLiveRetriever():
     def __init__(self, key_file_path: str, update_time_interval: timedelta,
                  symbol: str, category: str, start=False):
         self.ld = LiveDataRetriever(key_file_path)
-        self.update_time_interval = update_time_interval
+        self.update_time_interval_ms = Value('i', update_time_interval)
         self.ob_data_queue = Queue()
         self.trades_data_queue = Queue()
+        self.data_queue = Queue()
         self.symbol = symbol
         self.category = category
-        self.ob_process = Process(target=self.get_ob_process)
-        self.trades_process = Process(target=self.get_trades_process)
-        self.run_ob_process = Value('i', 0)
-        self.run_trades_process = Value('i', 0)
+        self.start_time_ms = int(datetime.now().timestamp() * 1000)
+        self.run_spawner = Value('b', False)
+        self.spawner_process = Process(
+            target=self.run_spawner_process, args=(self.start_time_ms,))
+        self.digester_process = Process(
+            target=self.run_digester_process, args=(self.start_time_ms,))
         if start:
-            self.run_ob_process.value = 1
-            self.run_trades_process.value = 1
-            self.ob_process.start()
-            self.trades_process.start()
+            self.spawner_process.start()
+            self.digester_process.start()
 
-    def set_time_interval(self, update_time_interval: timedelta):
-        self.update_time_interval = update_time_interval
+    def set_time_interval(self, update_time_interval_ms: int):
+        self.update_time_interval_ms.value = update_time_interval_ms
 
     def set_currency(self, symbol: str, category: str):
         self.symbol = symbol
         self.category = category
 
     def start(self):
-        self.run_ob_process.value = 1
-        self.run_trades_process.value = 1
-        if not self.ob_process.is_alive():
-            self.ob_process.start()
-
-        if not self.trades_process.is_alive():
-            self.trades_process.start()
+        self.run_spawner.value = True
+        if not self.spawner_process.is_alive():
+            self.spawner_process.start()
+        if not self.digester_process.is_alive():
+            self.digester_process.start()
 
     def pause(self):
-        self.run_ob_process.value = 0
-        self.run_trades_process.value = 0
+        self.run_spawner.value = False
 
     def stop(self):
-        self.ob_process.terminate()
-        self.trades_process.terminate()
+        self.spawner_process.terminate()
+        self.digester_process.terminate()
 
     def __del__(self):
         print("Cleaning up PeriodicLiveRetriever...")
-        self.ob_process.terminate()
-        self.trades_process.terminate()
+        self.stop()
         try:
             del self.ld
-        except:
+        except Exception:
             pass
 
-    def get_ob_process(self):
+    def run_spawner_process(self, start_time_ms):
+        """
+        Spawns two data retrieval processes every time interval, giving them the timestamp in ms
+        when the request should happen.
+        """
+
+        # How early do we want to activate the processes
+        # NOTE: Feedback loop might be possible from the digester
+        ACTIVATION_THESHHOLD_MS = 100
+
         def interpret_sigint(signum, frame):
             print("Received SIGINT at PeriodicLiveRetriever subprocess, cleaning up...")
-            # frame.f_locals['self.ld'].__del__()
-            del self.ld
             exit(0)
 
         signal(SIGINT, interpret_sigint)
+
+        print("Starting spawner process at: ", start_time_ms)
+        next_time_ms = start_time_ms + self.update_time_interval_ms.value
+
         while True:
-            if self.run_ob_process.value:
-                now = datetime.now()
+            current_time_ms = int(datetime.now().timestamp() * 1000)
+            if next_time_ms - current_time_ms < 100:
+                # only start if required
+                if self.run_spawner.value:
+                    ob_process = Process(
+                        target=get_ob_process, args=(self.ld, self.symbol,
+                                                     self.category, self.ob_data_queue, next_time_ms))
+                    trade_process = Process(
+                        target=get_trades_process, args=(self.ld, self.symbol,
+                                                         self.category, self.trades_data_queue, next_time_ms))
 
-                ob_data = self.ld.fetch_current_orderbook(
-                    self.symbol, self.category, limit=50)
-                self.ob_data_queue.put(ob_data)
-                time_passed_requesting = datetime.now() - now
-                time_left_to_sleep_seconds = float(
-                    self.update_time_interval.microseconds - time_passed_requesting.microseconds) / 1000000
-                if (time_left_to_sleep_seconds < 0):
-                    print(
-                        "WARNING: Requesting ob data took more time than update time interval!")
-                    continue
-                time.sleep(time_left_to_sleep_seconds)
+                    ob_process.start()
+                    trade_process.start()
+                    pass
+                next_time_ms += self.update_time_interval_ms.value
 
-    def get_trades_process(self):
+    def run_digester_process(self, start_time_ms):
+        """
+        Digests the data put into the queue by the retrieval processes and outputs a chornological
+        and robust data sequence.
+        """
+
         def interpret_sigint(signum, frame):
             print("Received SIGINT at PeriodicLiveRetriever subprocess, cleaning up...")
-            del self.ld
             exit(0)
 
         signal(SIGINT, interpret_sigint)
-        while True:
-            if self.run_trades_process.value:
-                now = datetime.now()
 
-                trade_data = self.ld.fetch_recent_trading_history(
-                    self.symbol, self.category)
-                self.trades_data_queue.put(trade_data)
-                time_passed_requesting = datetime.now() - now
-                time_left_to_sleep_seconds = float(
-                    self.update_time_interval.microseconds - time_passed_requesting.microseconds) / 1000000
-                if (time_left_to_sleep_seconds < 0):
-                    print(
-                        "WARNING: Requesting ob data took more time than update time interval!")
-                    continue
-                time.sleep(time_left_to_sleep_seconds)
+        print("Starting digest process at: ", start_time_ms)
+
+        current_time_ms = start_time_ms
+
+        while True:
+            # Rule 1: the data fetched must be newer than current_time_ms
+            # Rule 2: if the timesteps of the popped data are not equivalent, discard the older one
+            #         and pop a new one
+            # This sequence ensures a chronological timeline of data for any combination of these events:
+            #   - data could not be retrieved by subprocess and nothing is put into Queue
+            #   - some workers finishing faster than chronologically assigned
+            ob_data = self.ob_data_queue.get(block=True)
+            trade_data = self.trades_data_queue.get(block=True)
+
+            while ob_data[0] < current_time_ms:
+                ob_data = self.ob_data_queue.get(block=True)
+
+            while trade_data[0] < current_time_ms:
+                trade_data = self.trades_data_queue.get(block=True)
+
+            while trade_data[0] != ob_data[0]:
+                if trade_data[0] < ob_data[0]:
+                    trade_data = self.trades_data_queue.get(block=True)
+                else:
+                    ob_data = self.ob_data_queue.get(block=True)
+
+            current_time_ms = trade_data[0]
+            current_delay = int(datetime.now().timestamp()
+                                * 1000) - current_time_ms
+
+            data = {
+                "ts": current_time_ms,
+                "delay_after_request": {"trades": trade_data[1], "ob": ob_data[1]},
+                "delay_after_digesting": current_delay,
+                "ob": ob_data[2],
+                "trades": trade_data[2]
+            }
+
+            self.data_queue.put(data)
 
 
 if __name__ == "__main__":
     ld = PeriodicLiveRetriever(
-        "apiKey.json", timedelta(milliseconds=650), "CAKEUSDT", "linear")
+        "api_key.json", 650, "BTCUSDT", "spot")
 
-    # def interpret_sigint(signum, frame):
-    #     print("Received SIGINT at main process, cleaning up...")
-    #     print(frame.f_locals.keys())
-    #     frame.f_locals['self'].ld.__del__()
-    #     exit(0)
-
-    # signal(SIGINT, interpret_sigint)
     t = time.time()
     ld.start()
-    while time.time() - t < 10:
-        pass
-        a = ld.ob_data_queue.get(block=True)
-        # print(a.keys())
-        b = ld.trades_data_queue.get(block=True)
-        print(b)
+    while time.time() - t < 100:
+        d = ld.data_queue.get(block=True)
+        print(d["ts"], d["delay_after_request"], d["delay_after_digesting"],
+              d["ob"]["ts"], d["trades"]["list"][0]["time"])
 
-        ld.pause()
-        ld.start()
     del ld
