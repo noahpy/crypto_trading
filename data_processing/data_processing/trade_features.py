@@ -447,3 +447,10 @@ class VolatilityFeature(Feature):
             plt.tight_layout()
             plt.subplots_adjust(hspace=0.3)  # Add space between subplots
             plt.show()
+
+    def turn_all_subfeatures_on(self):
+        pass
+
+    def turn_all_subfeatures_off(self):
+        pass
+
