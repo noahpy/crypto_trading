@@ -18,7 +18,7 @@ class PyTorchWrapper():
         fc_path = f'{model_path}/feature_creator.pkl'
         
         # Load the model
-        self.model = torch.load(model_file, map_location=torch.device('cpu'))
+        self.model = torch.load(model_file, map_location=torch.device('cpu'), weights_only=False)
         self.model.eval()  # Set to evaluation mode
         
         # Load the input feature creator
