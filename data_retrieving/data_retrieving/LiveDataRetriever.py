@@ -2,6 +2,7 @@
 from pybit.unified_trading import HTTP as BybitSession
 import json
 import time
+from threading import Thread
 from multiprocessing import Process, Lock, Value
 import signal
 
@@ -30,13 +31,12 @@ class LiveDataRetriever:
             self.session = self.create_session(key_file_path)
             self.RATELIMIT_PER_FIVE_SECONDS = 600
             self.loop_refresh = True
-            self.refresh_process = Process(
+            self.refresh_thread = Thread(
                 target=self.periodic_reset_request_count)
-            self.refresh_process.start()
+            self.refresh_thread.start()
 
         def __del__(self):
             self.loop_refresh = False
-            self.refresh_process.terminate()
             time.sleep(0.1)
 
         def periodic_reset_request_count(self):
@@ -149,7 +149,7 @@ class LiveDataRetriever:
 
 if __name__ == "__main__":
 
-    ld = LiveDataRetriever("api_key.json")
+    ld = LiveDataRetriever("apiKey.json")
 
     def interpret_sigint(signum, frame):
         print("Received SIGINT at subprocess, cleaning up...")
@@ -172,8 +172,8 @@ if __name__ == "__main__":
     p2 = Process(target=loop2)
     p3 = Process(target=loop2)
     p1.start()
-    # p2.start()
-    # p3.start()
+    p2.start()
+    p3.start()
 
     def interpret_sigint2(signum, frame):
         print("Received SIGINT at main process, cleaning up...")
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     time.sleep(30)
 
     p1.terminate()
-    # p2.terminate()
-    # p3.terminate()
+    p2.terminate()
+    p3.terminate()
 
     del ld
