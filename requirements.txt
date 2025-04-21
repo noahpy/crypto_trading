@@ -5,6 +5,8 @@ scipy
 torch
 pybit
 scikit-learn
+plotly
+tabulate
 -e ./data_processing
 -e ./data_retrieving
 -e ./machine_learning
