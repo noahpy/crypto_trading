@@ -1,7 +1,7 @@
 
 from data_retrieving.LiveDataRetriever import LiveDataRetriever
 from datetime import timedelta, datetime
-from multiprocessing import Queue, Process, Value, Manager
+from multiprocessing import Queue, Process, Value, Manager, set_start_method
 from signal import signal, SIGINT
 import time
 from ctypes import c_char_p
@@ -171,6 +171,7 @@ class PeriodicLiveRetriever():
 
 
 if __name__ == "__main__":
+    set_start_method("fork")
     ld = PeriodicLiveRetriever(
         "api_key.json", 650, "BTCUSDT", "spot")
 
