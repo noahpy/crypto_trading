@@ -4,10 +4,21 @@ import pandas as pd
 import json
 
 
+class PeriodicDataLoader():
+
+    def __init__(self, data_requrements, start_date):
+        self.data_requrements = data_requrements
+        self.start_date = start_date
+
+
+    
+
+
 class HistoricMarketSimulator():
 
 
     def __init__(self, folder: str):
+        
         self.folder = folder
 
         pass
@@ -73,7 +84,55 @@ class HistoricMarketSimulator():
 
         return 0, 0
 
+    
+    def initialize_positions(self, tradable_assets):
         
+        positions = {}
+
+        for asset in tradable_assets:
+            category = asset["category"]
+            symbol = asset["symbol"]
+            
+            if not category in positions:
+                positions[category] = {}
+
+            if not symbol in positions[category]:
+                positions[category][symbol] = 0
+                
+            
+
+
+
+
+
+
+    def backtest_strategy2(
+            self,
+            strategy: Strategy,
+            start_date: datetime,
+            end_date: datetime):
+        
+        
+        data_requirements, tradable_assets, next_ts = strategy.set_up()
+
+        current_ts = start_date
+        periodic_dl = PeriodicDataLoader(data_requirements, current_ts)
+        
+
+        while current_ts <= end_date:
+
+            data = periodic_dl.get(next_ts)
+
+            orders = strategy.get_orders(data, next_ts)
+
+
+
+
+        
+        return None
+
+
+
 
     def backtest_strategy(
             self,

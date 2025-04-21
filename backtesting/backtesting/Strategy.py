@@ -7,7 +7,12 @@ import torch
 class Strategy(ABC):
 
     @abstractmethod
-    def get_orders(self, data: dict) -> tuple[dict, datetime, List[str]]:
+    def get_orders(
+        self,
+        data: dict,
+        positions: dict,
+        unmatched_orders: dict) -> tuple[dict, datetime]:
+        
         """
         returns orders and the timestamp when it should be called next
         
@@ -17,15 +22,34 @@ class Strategy(ABC):
                 "Coin_2": ...
             }
         Returns:
-            - orders
+            - orders [{"catogory": "linear", "symbol" : "CAKEUSDT", "side": "buy", "price": 1.99, "type" : "FOK" / "GUC" / "IOC"  }]
             - timestamp
         """
         pass
 
     @abstractmethod
-    def set_up(self) -> tuple[datetime, List[str]]:
+    def set_up(self) -> tuple[dict, List[dict], datetime]:
         """
-        frist function to be called. Returns a datetime when get_orders should be called next and a list of coins for which the data should be collected
+        {
+            "perpetual": {
+                "CAKEUSDT" : ["bids", "asks", "trades"], 
+            },
+            "spot": {
+
+            },
+            "truth_social": {
+                "@RealDonaldTrump" : 
+            }
+                
+            
+        }
+        frist function to be called. Returns a symbol for which the data should be collected and a timestamp when get_orders should be called next in milliseconds
+        
+        Returns:
+        - data requirements
+        - contracts that it wants to trade
+        - next timestep to be queried
+        
         """
         pass
 
