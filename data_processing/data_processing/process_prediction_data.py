@@ -6,6 +6,8 @@ def plot_predicted_vs_actual_midprice_interactive(file_path):
     predicted_midprices = []
     actual_midprices = []
 
+    horizon_offset = 10
+
     with open(file_path, 'r') as f:
         for line in f:
             data = json.loads(line)
@@ -19,6 +21,11 @@ def plot_predicted_vs_actual_midprice_interactive(file_path):
     # Convert timestamps to seconds relative to first timestamp
     t0 = timestamps[0]
     time_seconds = [(t - t0) / 1000 for t in timestamps]
+
+    if horizon_offset > 0:
+        time_seconds = [0 for _ in range(horizon_offset)] + time_seconds
+        predicted_midprices = predicted_midprices + [predicted_midprices[-1] for _ in range(horizon_offset)] 
+        actual_midprices = [actual_midprices[0] for _ in range(horizon_offset)] + actual_midprices
 
     # Create interactive plot
     fig = go.Figure()

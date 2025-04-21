@@ -1,29 +1,25 @@
-
 from data_retrieving.LiveDataRetriever import LiveDataRetriever
 from datetime import timedelta, datetime
-from multiprocessing import Queue, Process, Value, Manager, set_start_method
+from multiprocessing import Queue, Process, Value, Manager
 from signal import signal, SIGINT
 import time
 from ctypes import c_char_p
+import multiprocessing as mp
 
 
-def get_ob_process(ld, symbol, category, ob_data_queue, rq_time_ms, limit=50):
-
-    ob_data = ld.fetch_current_orderbook(
-        symbol, category, limit=50)
+def get_ob_process(key_file_path, symbol, category, ob_data_queue, rq_time_ms, limit=50):
+    ld = LiveDataRetriever(key_file_path)
+    ob_data = ld.fetch_current_orderbook(symbol, category, limit=limit)
     if ob_data is not None:
-        time_passed_requesting = int(
-            datetime.now().timestamp() * 1000) - rq_time_ms
+        time_passed_requesting = int(datetime.now().timestamp() * 1000) - rq_time_ms
         ob_data_queue.put([rq_time_ms, time_passed_requesting, ob_data])
 
 
-def get_trades_process(ld, symbol, category, trades_data_queue, rq_time_ms):
-
-    trade_data = ld.fetch_recent_trading_history(
-        symbol, category, )
+def get_trades_process(key_file_path, symbol, category, trades_data_queue, rq_time_ms):
+    ld = LiveDataRetriever(key_file_path)
+    trade_data = ld.fetch_recent_trading_history(symbol, category)
     if trade_data is not None:
-        time_passed_requesting = int(
-            datetime.now().timestamp() * 1000) - rq_time_ms
+        time_passed_requesting = int(datetime.now().timestamp() * 1000) - rq_time_ms
         trades_data_queue.put([rq_time_ms, time_passed_requesting, trade_data])
 
 
@@ -34,8 +30,9 @@ class PeriodicLiveRetriever():
 
     def __init__(self, key_file_path: str, update_time_interval: timedelta,
                  symbol: str, category: str, start=False):
+        self.key_file_path = key_file_path
         self.ld = LiveDataRetriever(key_file_path)
-        self.update_time_interval_ms = Value('i', update_time_interval)
+        self.update_time_interval_ms = Value('i', int(update_time_interval.total_seconds() * 1000))
         self.ob_data_queue = Queue()
         self.trades_data_queue = Queue()
         self.data_queue = Queue()
@@ -82,13 +79,6 @@ class PeriodicLiveRetriever():
             pass
 
     def run_spawner_process(self, start_time_ms):
-        """
-        Spawns two data retrieval processes every time interval, giving them the timestamp in ms
-        when the request should happen.
-        """
-
-        # How early do we want to activate the processes
-        # NOTE: Feedback loop might be possible from the digester
         ACTIVATION_THESHHOLD_MS = 100
 
         def interpret_sigint(signum, frame):
@@ -102,27 +92,24 @@ class PeriodicLiveRetriever():
 
         while True:
             current_time_ms = int(datetime.now().timestamp() * 1000)
-            if next_time_ms - current_time_ms < 100:
-                # only start if required
+            if next_time_ms - current_time_ms < ACTIVATION_THESHHOLD_MS:
                 if self.run_spawner.value:
                     ob_process = Process(
-                        target=get_ob_process, args=(self.ld, self.symbol.value,
-                                                     self.category.value, self.ob_data_queue, next_time_ms))
+                        target=get_ob_process, args=(
+                            self.key_file_path, self.symbol.value,
+                            self.category.value, self.ob_data_queue, next_time_ms)
+                    )
                     trade_process = Process(
-                        target=get_trades_process, args=(self.ld, self.symbol.value,
-                                                         self.category.value, self.trades_data_queue, next_time_ms))
+                        target=get_trades_process, args=(
+                            self.key_file_path, self.symbol.value,
+                            self.category.value, self.trades_data_queue, next_time_ms)
+                    )
 
                     ob_process.start()
                     trade_process.start()
-                    pass
                 next_time_ms += self.update_time_interval_ms.value
 
     def run_digester_process(self, start_time_ms):
-        """
-        Digests the data put into the queue by the retrieval processes and outputs a chornological
-        and robust data sequence.
-        """
-
         def interpret_sigint(signum, frame):
             print("Received SIGINT at PeriodicLiveRetriever subprocess, cleaning up...")
             exit(0)
@@ -134,12 +121,6 @@ class PeriodicLiveRetriever():
         current_time_ms = start_time_ms
 
         while True:
-            # Rule 1: the data fetched must be newer than current_time_ms
-            # Rule 2: if the timesteps of the popped data are not equivalent, discard the older one
-            #         and pop a new one
-            # This sequence ensures a chronological timeline of data for any combination of these events:
-            #   - data could not be retrieved by subprocess and nothing is put into Queue
-            #   - some workers finishing faster than chronologically assigned
             ob_data = self.ob_data_queue.get(block=True)
             trade_data = self.trades_data_queue.get(block=True)
 
@@ -156,8 +137,7 @@ class PeriodicLiveRetriever():
                     ob_data = self.ob_data_queue.get(block=True)
 
             current_time_ms = trade_data[0]
-            current_delay = int(datetime.now().timestamp()
-                                * 1000) - current_time_ms
+            current_delay = int(datetime.now().timestamp() * 1000) - current_time_ms
 
             data = {
                 "ts": current_time_ms,
@@ -171,9 +151,11 @@ class PeriodicLiveRetriever():
 
 
 if __name__ == "__main__":
-    set_start_method("fork")
+    mp.set_start_method("fork", force=True)  # 👈 Important for macOS!
+
     ld = PeriodicLiveRetriever(
-        "api_key.json", 650, "BTCUSDT", "spot")
+        "api_key.json", timedelta(milliseconds=650), "BTCUSDT", "spot"
+    )
 
     t = time.time()
     ld.start()
