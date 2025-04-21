@@ -14,6 +14,7 @@ import math
 from scipy.stats import norm
 import numpy as np
 from tabulate import tabulate
+from datetime import timedelta
 
 
 def probability_random_achieves_accuracy(accuracy, attempts, p=0.5):
@@ -71,7 +72,7 @@ class ModelPredictionLiveTester(tk.Tk):
 
         # Create data retriever
         self.pld = PeriodicLiveRetriever(
-            api_key_path, 1000, "CAKEUSDT", "linear")
+            api_key_path, timedelta(milliseconds=1000), "CAKEUSDT", "linear")
         self.pld.start()
 
         self.last_snapshot = None
