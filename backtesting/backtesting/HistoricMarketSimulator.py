@@ -99,8 +99,7 @@ class HistoricMarketSimulator():
             if not symbol in positions[category]:
                 positions[category][symbol] = 0
                 
-            
-
+        self.positions = positions
 
 
 
@@ -113,10 +112,12 @@ class HistoricMarketSimulator():
             end_date: datetime):
         
         
-        data_requirements, tradable_assets, next_ts = strategy.set_up()
-
         current_ts = start_date
+
+        data_requirements, tradable_assets, next_ts = strategy.set_up()
+        
         periodic_dl = PeriodicDataLoader(data_requirements, current_ts)
+        self.initialize_positions(tradable_assets)
         
 
         while current_ts <= end_date:
@@ -124,6 +125,8 @@ class HistoricMarketSimulator():
             data = periodic_dl.get(next_ts)
 
             orders = strategy.get_orders(data, next_ts)
+
+            self.update
 
 
 
