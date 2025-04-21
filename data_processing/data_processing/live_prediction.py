@@ -10,6 +10,44 @@ import traceback
 import time
 import queue
 import json
+import math
+from scipy.stats import norm
+import numpy as np
+from tabulate import tabulate
+
+
+def probability_random_achieves_accuracy(accuracy, attempts, p=0.5):
+    """
+    Calculate the probability that a random strategy with success rate p
+    achieves at least the given accuracy over a number of attempts.
+    Parameters:
+    - accuracy (float): Target accuracy to reach (e.g. 0.7137)
+    - attempts (int): Number of predictions made
+    - p (float): Probability of success for random strategy (default is 0.5)
+    Returns:
+    - float: Probability of reaching or exceeding the accuracy by chance
+    """
+    # Calculate number of correct predictions needed
+    k = int(accuracy * attempts)
+    # Mean and standard deviation under binomial distribution
+    mu = attempts * p
+    sigma = math.sqrt(attempts * p * (1 - p))
+    # Continuity correction
+    z = (k - 0.5 - mu) / sigma
+    # Probability of getting k or more correct predictions
+    return 1 - norm.cdf(z)
+
+def probability_table_for_accuracy(accuracy, attempts, granularity=0.05):
+    # Generate p values from 0.5 to accuracy (inclusive)
+    p_values = np.arange(0.5, min(accuracy + 0.1, 1.0), granularity)
+    results = []
+
+    for p in p_values:
+        prob = probability_random_achieves_accuracy(accuracy, attempts, p)
+        results.append([round(p, 2), f"{prob:.10f}"])
+
+    # Display table
+    print(tabulate(results, headers=["p (random success rate)", f"P(≥ {accuracy*100:.2f}% accuracy)"], tablefmt="pretty"))
 
 
 def convert_bybit_ob_to_snapshot(order_book):
