@@ -44,7 +44,7 @@ class InteractiveLiveProcessor(tk.Tk):
 
         # Create data retriever
         self.pld = PeriodicLiveRetriever(
-            api_key_path, 1000, "CAKEUSDT", "linear")
+            api_key_path, timedelta(milliseconds=1000), "CAKEUSDT", "linear")
 
         self.feature_instances = {}
         self.feature_data = []
