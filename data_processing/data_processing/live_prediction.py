@@ -1,7 +1,6 @@
 
 from data_retrieving.PeriodicLiveRetriever import PeriodicLiveRetriever
 from machine_learning.wrapper import PyTorchWrapper
-import tkinter as tk
 import sys
 from typing import List
 from datetime import datetime
@@ -60,11 +59,8 @@ def convert_bybit_ob_to_snapshot(order_book):
     return {"ts": ts, "mid_price": mid_price, "bids": bids, "asks": asks, "original_ts": order_book['ts']}
 
 
-class ModelPredictionLiveTester(tk.Tk):
+class ModelPredictionLiveTester():
     def __init__(self, api_key_path: str, model_path: str, model_input_len: int, horizon: int, trend_threshhold: float):
-        super().__init__()
-        self.title("Crypto Live Feature Viewer")
-        self.geometry("1200x900")
 
         self.trend_threshhold = trend_threshhold
         self.model_horizon = horizon
@@ -76,14 +72,14 @@ class ModelPredictionLiveTester(tk.Tk):
 
         self.last_snapshot = None
 
-        # Start update thread
-        self.run_update_thread = True
-        self.after(100, self._start_update_thread)
-
         self.model = PyTorchWrapper(model_path, model_input_len)
         self.model_ready = False
         self.past_midprices = []
         self.past_predictions = []
+
+        # Start update thread
+        self.run_update_thread = True
+        self._start_update_thread()
 
     def _start_update_thread(self):
         """Start the background thread for processing data updates"""
@@ -175,8 +171,6 @@ class ModelPredictionLiveTester(tk.Tk):
                         print(f"No trend yet: Mid Price: {midprice_current:.5f} Mid Price Before: {midprice_before:.5f} Actual Trend: {actual_trend}, Predicted Trend: {predicted_trend}")
                         print(e)
 
-                self.update()
-
             except Exception as e:
                 print(f"Error in feature update process: {str(e)}")
                 traceback.print_exc()
@@ -211,4 +205,3 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         api_key_path = sys.argv[1]
     app = ModelPredictionLiveTester(api_key_path, "ml_models", 30, 10, 0.002)
-    app.mainloop()

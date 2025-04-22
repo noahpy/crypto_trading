@@ -149,7 +149,7 @@ class LiveDataRetriever:
 
 if __name__ == "__main__":
 
-    ld = LiveDataRetriever("apiKey.json")
+    ld = LiveDataRetriever("api_key.json")
 
     def interpret_sigint(signum, frame):
         print("Received SIGINT at subprocess, cleaning up...")
