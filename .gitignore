@@ -9,3 +9,5 @@ api_key.*
 data/ d
 /old
 .python-version
+live_snapshots/
+prediction.data
