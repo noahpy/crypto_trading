@@ -76,6 +76,7 @@ class ModelPredictionLiveTester():
         self.model_ready = False
         self.past_midprices = []
         self.past_predictions = []
+        self.past_best_bid_ask = []
 
         # Start update thread
         self.run_update_thread = True
@@ -118,10 +119,16 @@ class ModelPredictionLiveTester():
                 self.past_midprices.append(snapshot_data["mid_price"])
                 self.past_predictions.append(prediction)
 
+                best_bid = max(self.last_snapshot["bids"].keys())
+                best_ask = min(self.last_snapshot["asks"].keys())
+                self.past_best_bid_ask.append((best_bid, best_ask))
+
                 if len(self.past_midprices) > self.model_horizon:
                     prediction_before = self.past_predictions[-self.model_horizon-1]
                     midprice_before = self.past_midprices[-self.model_horizon-1]
                     midprice_current = self.past_midprices[-1]
+                    past_best_bis_ask = self.past_best_bid_ask[-self.model_horizon-1]
+                    current_best_bid_ask = self.past_best_bid_ask[-1]
                     predicted_midprice_current = prediction_before + midprice_before
                     mse = pow(
                         (midprice_current - predicted_midprice_current), 2)
@@ -138,14 +145,27 @@ class ModelPredictionLiveTester():
                     if midprice_current - midprice_before < 0:
                         actual_trend = "DOWN"
 
+                    profit_step = 0
+                    profit_string = ""
                     if actual_trend != "NEUTRAL":
                         if actual_trend == predicted_trend:
                             trend_acc += 1
-                            profit += abs(midprice_current - midprice_before)
-                        else:
-                            profit -= abs(midprice_current - midprice_before)
+                        if predicted_trend == "UP":
+                            # buy in the past and sell now
+                            # profit += current best ask - past best bid
+                            sell_price = current_best_bid_ask[1]
+                            buy_price = past_best_bis_ask[0]
+                            profit_string = f"by buying at {buy_price:.5f} and selling at {sell_price:.5f}"
+                        elif predicted_trend == "DOWN":
+                            # sell in the past and buy now
+                            # profit += past best bid - current best ask
+                            sell_price = past_best_bis_ask[0]
+                            buy_price = current_best_bid_ask[0]
+                            profit_string = f"by selling at {sell_price:.5f} and buying at {buy_price:.5f}"
+                        profit_step = sell_price - buy_price
                         trend_acc_sum += 1
 
+                    profit += profit_step
                     acc_mse += mse
                     num_predictions += 1
 
@@ -160,12 +180,14 @@ class ModelPredictionLiveTester():
                             "accuracy": accuracy,
                             "trend_acc_sum": trend_acc_sum,
                             "profit": profit,
-                            "timestamp": snapshot_data["original_ts"]
+                            "timestamp": snapshot_data["original_ts"],
+                            "bids": self.last_snapshot["bids"],
+                            "asks": self.last_snapshot["asks"]
                         }
                         # append file with data json as line
                         with open("prediction.data", "a") as f:
                             f.write(json.dumps(data) + "\n")
-                        msg = f"Prediction Before: {prediction_before:.5f}, Mid Price: {midprice_current:.5f} Mid Price Before: {midprice_before:.5f} Actual Trend: {actual_trend}, Predicted Trend: {predicted_trend} Accuracy: {accuracy:.5f}, Trend Count: {trend_acc_sum}, Profit: {profit:.5f}"
+                        msg = f"Prediction Before: {prediction_before:.5f}, Mid Price: {midprice_current:.5f} Mid Price Before: {midprice_before:.5f} Actual Trend: {actual_trend}, Predicted Trend: {predicted_trend} Accuracy: {accuracy:.5f}, Trend Count: {trend_acc_sum}, Profit: {profit_step:.5f} {profit_string} Total profit: {profit:.5f}"
                         print(msg)
                     except Exception as e:
                         print(f"No trend yet: Mid Price: {midprice_current:.5f} Mid Price Before: {midprice_before:.5f} Actual Trend: {actual_trend}, Predicted Trend: {predicted_trend}")
