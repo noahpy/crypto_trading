@@ -9,18 +9,18 @@ class PeriodicDataLoader():
     def __init__(self, data_requrements, start_date):
         self.data_requrements = data_requrements
         self.start_date = start_date
+        
 
+        
 
+    def get_data(self):
     
 
 
 class HistoricMarketSimulator():
 
 
-    def __init__(self, folder: str):
-        
-        self.folder = folder
-
+    def __init__(self):
         pass
 
     def zero_pad(self, x):
@@ -90,14 +90,22 @@ class HistoricMarketSimulator():
         positions = {}
 
         for asset in tradable_assets:
+            
             category = asset["category"]
             symbol = asset["symbol"]
-            
-            if not category in positions:
-                positions[category] = {}
+            base = asset["base"]
 
-            if not symbol in positions[category]:
-                positions[category][symbol] = 0
+            positions[symbol] = {
+                "balance" : 0,
+                "unmatched_orders" : [],
+                "category" : category,
+                "base" : base
+            }
+            
+            if not base in positions:
+                positions[base] = {
+                    "balance" : 0
+                }
                 
         self.positions = positions
 
@@ -119,6 +127,10 @@ class HistoricMarketSimulator():
         periodic_dl = PeriodicDataLoader(data_requirements, current_ts)
         self.initialize_positions(tradable_assets)
         
+        print(f"positions: {self.positions}")
+        print(f"next_ts: {next_ts}")
+
+        return None
 
         while current_ts <= end_date:
 
@@ -228,3 +240,31 @@ class HistoricMarketSimulator():
                     
 
             curr_date += timedelta(days=1)
+
+
+
+class TestStrategy(Strategy):
+
+    def set_up(self):
+        
+        data_requirements = {"linear": {"CAKEUSDT": ["bids", "asks", "trades"]}}
+        tradeable_assets = [{"category": "linear", "symbol": "CAKEUSDT", "base": "USDT"}]
+        
+        return data_requirements, tradeable_assets, datetime(2025,1,1)
+
+    def get_orders(self, data, positions, unmatched_orders):
+        return super().get_orders(data, positions, unmatched_orders)
+
+
+
+if __name__ == "__main__":
+
+
+    hms = HistoricMarketSimulator()
+    test_strategy = TestStrategy()
+
+    hms.backtest_strategy2(
+        test_strategy,
+        datetime(2025,1,1),
+        datetime(2025,1,2)
+    )
