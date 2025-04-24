@@ -146,6 +146,7 @@ class DataLoader:
 
 
     def _process_single_day(self, args):
+        
         """Worker function to process a single day and return snapshots"""
         contract, curr_date, time_delta, category, zero_pad_func, update_order_book_func = args
         

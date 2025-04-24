@@ -10,8 +10,7 @@ class Strategy(ABC):
     def get_orders(
         self,
         data: dict,
-        positions: dict,
-        unmatched_orders: dict) -> tuple[dict, datetime]:
+        positions: dict) -> tuple[dict, datetime]:
         
         """
         returns orders and the timestamp when it should be called next
