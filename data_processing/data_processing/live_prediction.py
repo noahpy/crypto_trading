@@ -127,7 +127,7 @@ class ModelPredictionLiveTester():
                     prediction_before = self.past_predictions[-self.model_horizon-1]
                     midprice_before = self.past_midprices[-self.model_horizon-1]
                     midprice_current = self.past_midprices[-1]
-                    past_best_bis_ask = self.past_best_bid_ask[-self.model_horizon-1]
+                    past_best_bid_ask = self.past_best_bid_ask[-self.model_horizon-1]
                     current_best_bid_ask = self.past_best_bid_ask[-1]
                     predicted_midprice_current = prediction_before + midprice_before
                     mse = pow(
@@ -150,20 +150,20 @@ class ModelPredictionLiveTester():
                     if actual_trend != "NEUTRAL":
                         if actual_trend == predicted_trend:
                             trend_acc += 1
-                        if predicted_trend == "UP":
-                            # buy in the past and sell now
-                            # profit += current best ask - past best bid
-                            sell_price = current_best_bid_ask[1]
-                            buy_price = past_best_bis_ask[0]
-                            profit_string = f"by buying at {buy_price:.5f} and selling at {sell_price:.5f}"
-                        elif predicted_trend == "DOWN":
-                            # sell in the past and buy now
-                            # profit += past best bid - current best ask
-                            sell_price = past_best_bis_ask[0]
-                            buy_price = current_best_bid_ask[0]
-                            profit_string = f"by selling at {sell_price:.5f} and buying at {buy_price:.5f}"
-                        profit_step = sell_price - buy_price
                         trend_acc_sum += 1
+                    if predicted_trend == "UP":
+                        # buy in the past and sell now
+                        # profit += current best bid - past best ask
+                        sell_price = current_best_bid_ask[0]
+                        buy_price = past_best_bid_ask[1]
+                        profit_string = f"by buying at {buy_price:.5f} and selling at {sell_price:.5f}"
+                    elif predicted_trend == "DOWN":
+                        # sell in the past and buy now
+                        # profit += past best ask - current best bid
+                        sell_price = past_best_bid_ask[1]
+                        buy_price = current_best_bid_ask[0]
+                        profit_string = f"by selling at {sell_price:.5f} and buying at {buy_price:.5f}"
+                    profit_step = sell_price - buy_price
 
                     profit += profit_step
                     acc_mse += mse
