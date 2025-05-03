@@ -49,7 +49,7 @@ class LiveDataRetriever:
         report_time = time.time()
         while self.loop_refresh:
             if time.time() - report_time >= REPORT_REFRESH_RATE:
-                print(f"Made {request_queue.qsize()} request in past {REPORT_REFRESH_RATE} seconds.")
+                print(f"Made {request_queue.qsize() + 1} request in past {REPORT_REFRESH_RATE} seconds.")
                 report_time = time.time()
             time.sleep(0.01)
             # requests before 5 seconds can be dismissed
