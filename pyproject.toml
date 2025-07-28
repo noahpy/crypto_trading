@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my_trading_project"
+version = "0.1.0"
+# authors = [
+#   { name="Noah Schlenker", email="you@example.com" },
+# ]
+# description = "A comprehensive backtesting and machine learning platform for trading."
+# readme = "README.md"
+# requires-python = ">=3.8"
+# classifiers = [
+#     "Programming Language :: Python :: 3",
+#     "License :: OSI Approved :: MIT License",
+#     "Operating System :: OS Independent",
+# ]
+dependencies = [
+    # List your third-party dependencies from requirements.txt here
+    "matplotlib",
+    "numpy",
+    "seaborn",
+    "scipy",
+    "torch",
+    "pybit",
+    "scikit-learn",
+    "plotly",
+    "tabulate",
+    "msgpack"
+]
+
+[tool.setuptools]
+packages = [
+    "backtesting.backtesting",
+    "data_processing.data_processing",
+    "data_retrieving.data_retrieving",
+    "machine_learning.machine_learning"
+]
