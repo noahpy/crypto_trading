@@ -1,5 +1,5 @@
 
-from data_processing.FeatureCreation import Feature
+from my_ml_crypto_trading.data_processing.FeatureCreation import Feature
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt

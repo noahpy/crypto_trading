@@ -1,6 +1,6 @@
 
 
-from data_retrieving.PeriodicLiveRetriever import PeriodicLiveRetriever
+from my_ml_crypto_trading.data_retrieving.PeriodicLiveRetriever import PeriodicLiveRetriever
 import sys
 from typing import List
 from datetime import datetime

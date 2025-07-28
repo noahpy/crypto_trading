@@ -4,9 +4,9 @@ import time
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
-from data_retrieving.LiveDataRetriever import LiveDataRetriever
+from my_ml_crypto_trading.data_retrieving.LiveDataRetriever import LiveDataRetriever
 from matplotlib.colors import LinearSegmentedColormap
-from data_processing.data_loader import *
+from my_ml_crypto_trading.data_processing.data_loader import *
 import seaborn as sns
 import sys
 from datetime import datetime

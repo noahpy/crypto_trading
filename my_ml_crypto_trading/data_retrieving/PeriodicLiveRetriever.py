@@ -1,4 +1,4 @@
-from data_retrieving.LiveDataRetriever import LiveDataRetriever
+from my_ml_crypto_trading.data_retrieving.LiveDataRetriever import LiveDataRetriever
 from datetime import timedelta, datetime
 from multiprocessing import Queue, Process, Value, Manager
 from signal import signal, SIGINT

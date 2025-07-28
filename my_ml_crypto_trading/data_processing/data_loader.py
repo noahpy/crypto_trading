@@ -3,13 +3,13 @@ import numpy as np
 import json
 import pandas as pd
 from typing import List
-from data_processing.FeatureCreation import FeatureCreator
+from my_ml_crypto_trading.data_processing.FeatureCreation import FeatureCreator
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
 import pytz
 import time
-from data_retrieving.HistoricalDataRetriever import *
+from my_ml_crypto_trading.data_retrieving.HistoricalDataRetriever import *
 
 
 class DataLoader:

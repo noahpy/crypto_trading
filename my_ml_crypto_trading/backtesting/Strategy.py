@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Callable
-from machine_learning.wrapper import *
+from my_ml_crypto_trading.machine_learning.wrapper import *
 from datetime import datetime, timedelta
 import torch
 

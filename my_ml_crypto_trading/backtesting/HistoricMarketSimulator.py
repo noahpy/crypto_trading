@@ -1,10 +1,10 @@
-from backtesting.Strategy import Strategy
+from my_ml_crypto_trading.backtesting.Strategy import Strategy
 from datetime import datetime, timedelta
 import pandas as pd
-from data_retrieving.HistoricalDataRetriever import *
+from my_ml_crypto_trading.data_retrieving.HistoricalDataRetriever import *
 import json
 import pytz
-from machine_learning.wrapper import PyTorchWrapper
+from my_ml_crypto_trading.machine_learning.wrapper import PyTorchWrapper
 
 
 class PeriodicDataLoader():

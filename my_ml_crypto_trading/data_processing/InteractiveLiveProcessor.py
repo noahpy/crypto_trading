@@ -1,8 +1,8 @@
-from data_retrieving.PeriodicLiveRetriever import PeriodicLiveRetriever
-from data_processing.FeatureCreation import Feature
-import data_processing.ob_features
-import data_processing.trade_features
-from data_processing.FeatureCreation import FeatureCreator
+from my_ml_crypto_trading.data_retrieving.PeriodicLiveRetriever import PeriodicLiveRetriever
+from my_ml_crypto_trading.data_processing.FeatureCreation import Feature
+import my_ml_crypto_trading.data_processing.ob_features
+import my_ml_crypto_trading.data_processing.trade_features
+from my_ml_crypto_trading.data_processing.FeatureCreation import FeatureCreator
 import tkinter as tk
 from tkinter import ttk
 import inspect
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from datetime import timedelta
 from typing import List
-from datetime import datetime
+from datetime import datetime, timedelta
 from multiprocessing import Value
 from threading import Thread
 import traceback
@@ -44,7 +44,7 @@ class InteractiveLiveProcessor(tk.Tk):
 
         # Create data retriever
         self.pld = PeriodicLiveRetriever(
-            api_key_path, 1000, "CAKEUSDT", "linear")
+            api_key_path, timedelta(seconds=1), "CAKEUSDT", "linear")
 
         self.feature_instances = {}
         self.feature_data = []
@@ -188,8 +188,8 @@ class InteractiveLiveProcessor(tk.Tk):
 
     def _load_features(self):
         """Load and initialize features"""
-        self._load_features_from_module(data_processing.ob_features)
-        self._load_features_from_module(data_processing.trade_features)
+        self._load_features_from_module(my_ml_crypto_trading.data_processing.ob_features)
+        self._load_features_from_module(my_ml_crypto_trading.data_processing.trade_features)
 
         for feature in list(self.feature_instances.values()):
             feature.turn_all_subfeatures_on()

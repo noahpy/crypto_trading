@@ -1,6 +1,6 @@
 
-from data_retrieving.PeriodicLiveRetriever import PeriodicLiveRetriever
-from machine_learning.wrapper import PyTorchWrapper
+from my_ml_crypto_trading.data_retrieving.PeriodicLiveRetriever import PeriodicLiveRetriever
+from my_ml_crypto_trading.machine_learning.wrapper import PyTorchWrapper
 import sys
 from typing import List
 from datetime import datetime
