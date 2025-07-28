@@ -20,5 +20,9 @@ Note that this program will have difficulties running on MacOS, as it disallows 
 
 ![InteractiveLiveProcessor](assets/InteractiveLiveProcessor.png)
 
+We have sucessfully trained a model to predict the midprice of CAKEUSDT with a trend accuracy of around 75% (see below).
+
+![TrainedModel](assets/predictions.png)
+
 
 More documentation to follow.
