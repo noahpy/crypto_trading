@@ -20,7 +20,10 @@ Note that this program will have difficulties running on MacOS, as it disallows 
 
 ![InteractiveLiveProcessor](assets/InteractiveLiveProcessor.png)
 
-We have sucessfully trained a model to predict the midprice of CAKEUSDT with a trend accuracy of around 75% (see below).
+We have sucessfully trained a model to predict the midprice of CAKEUSDT with a trend consistent accuracy of around 75% (see below).
+This trend accuracy has been confirmed with live orderbook data as well.
+Midprice was predicted 10 seconds ahead, with LOB features of last 20 seconds as input.
+Data leakages for overfitting are not to be found (yet).
 
 ![TrainedModel](assets/predictions.png)
 
